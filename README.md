@@ -48,3 +48,7 @@ export default tseslint.config({
   },
 })
 ```
+
+### Dependencies
+npm install @mui/material @emotion/react @emotion/styled
+npm install @mui/icons-material
