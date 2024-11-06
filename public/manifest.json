@@ -9,6 +9,16 @@
     "service_worker": "service-worker.js",
     "type": "module"
   },
+  "commands": {
+    "save_tab": {
+      "suggested_key": "Alt+Shift+Period",
+      "description": "Add a tab to up next"
+    },
+    "open_sidebar": {
+      "suggested_key": "Alt+Shift+Comma",
+      "description": "Open the sidebar"
+    }
+},
     "side_panel": {
         "default_path": "index.html"
     },
