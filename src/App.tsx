@@ -8,12 +8,12 @@ import List from '@mui/material/List';
 
 function App() {
 // this is being stored inside the popup
-const [savedTab, setSavedTab] = useState<SavedUrl>({
-  url: "https://reactnative.dev/docs/turbo-native-modules-introduction",
-  parsedUrl: "reactnative.dev",
-  description: "Learn react native",
-  favicon: "https://reactnative.dev/img/favicon.ico"
-});
+// const [savedTab, setSavedTab] = useState<SavedUrl>({
+//   url: "https://reactnative.dev/docs/turbo-native-modules-introduction",
+//   parsedUrl: "reactnative.dev",
+//   description: "Learn react native",
+//   favicon: "https://reactnative.dev/img/favicon.ico"
+// });
  const [savedLinks, setSavedLinks] = useState<SavedUrl[]>([])
 
  function shortenUrl(url:string): string {
@@ -27,26 +27,25 @@ const [savedTab, setSavedTab] = useState<SavedUrl>({
   }
  }
 
- function updateSavedLinks(savedTab: SavedUrl): void {
-  setSavedLinks(prevSavedLinks => [...prevSavedLinks, savedTab])
- }
 
   useEffect(() => {
-  }, [savedTab])
+    // console.log('saved tab', savedTab)
+    console.log('saved links', savedLinks)
+  }, [savedLinks])
 
   const onClick = async () => {
     // this is happening inside the page
     let [tab] = await chrome.tabs.query({ active: true });
     let parsed = shortenUrl(`${tab.url}`);
-    
-    setSavedTab({
+
+    const newTab = {
       url: `${tab.url}`,
       parsedUrl: parsed,
       description: `${tab.title}`,
       favicon: `${tab.favIconUrl}`
-    })
-
-    updateSavedLinks(savedTab)
+    }
+    
+    setSavedLinks(prevSavedLinks => [...prevSavedLinks, newTab])
   }
 
 
