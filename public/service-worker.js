@@ -12,18 +12,14 @@ chrome.commands.onCommand.addListener((command) => {
   } else if (command === "open_sidebar") {
     console.log(`open sidebar triggered`);
     // togglePanel();
-    chrome.sidePanel.open
+    // chrome.sidePanel.open
     
   }
 });
 
 const sendTabToApp = async () => {
   let [activeTab] = await chrome.tabs.query({ active: true });
-      // const tab = {
-      //   url: activeTab.url,
-      //   title: activeTab.title,
-      //   favIconUrl: activeTab.favIconUrl,
-      // };
+
       console.log('tab = ', activeTab)
       // Send the tab info to the React app
       chrome.runtime.sendMessage({ message: "Tab Info", data: activeTab });
