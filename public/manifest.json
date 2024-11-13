@@ -25,12 +25,18 @@
     "permissions": [
         "scripting",
         "sidePanel",
-        "tabs"
+        "tabs",
+        "identity"
     ],
+    "oauth2": {
+    "client_id": "1055107703373-dupcu4p7b7f157hciik9qq2u5hj6qtl0.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
     "host_permissions": [
         "http://*/*",
         "https://*/*"
     ],
+    
     "icons": {
         "32": "icon-32.png"
     }

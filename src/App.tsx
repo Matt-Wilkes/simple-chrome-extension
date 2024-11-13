@@ -1,96 +1,93 @@
-import './App.css'
-import { useEffect, useState } from 'react'
-import { SavedUrl } from './pages/types';
-import SavedTab from './components/SavedTab';
-import Box from '@mui/material/Box';
-// import Grid from '@mui/material/Grid2';
-import List from '@mui/material/List';
+import './App.css';
+import { useState, useEffect } from 'react';
+import { createClient, Session } from '@supabase/supabase-js';
+import Homepage from './pages/home/Homepage';
 
-function App() {
-  // this is being stored inside the popup
-  const [savedLinks, setSavedLinks] = useState<SavedUrl[]>([])
+// https://supabase.com/docs/guides/auth/social-login/auth-google?queryGroups=platform&platform=chrome-extensions#configure-your-services-id
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL as string,
+  import.meta.env.VITE_SUPABASE_ANON_KEY as string
+);
 
-    // React to changes in the savedLinks array
-    useEffect(() => {
-      console.log('saved links', savedLinks)
-    }, [savedLinks])
+
+interface ManifestOauth2 {
+  client_id: string;
+  scopes: string[];
+}
+
+interface ChromeManifest {
+  oauth2?: ManifestOauth2;
+}
+
+export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+  }, []);
+
   
-    useEffect(() => {
-      //listener to receive messages from the service worker
-      const handleMessage = (receivedMessage: { message: string; data: chrome.tabs.Tab }) => {
-        if (receivedMessage?.message === "Tab Info") {
-          console.log("Received tab info:", receivedMessage.data);
-          updateSavedLinks(modifyTabData(receivedMessage.data));
+  const authenticateWithGoogle = () => {
+    const manifest = chrome.runtime.getManifest() as ChromeManifest;
+    const url = new URL('https://accounts.google.com/o/oauth2/auth');
+
+    
+    if (manifest.oauth2?.client_id && manifest.oauth2?.scopes) {
+      url.searchParams.set('client_id', manifest.oauth2.client_id);
+      url.searchParams.set('response_type', 'id_token');
+      url.searchParams.set('access_type', 'offline');
+      url.searchParams.set('redirect_uri', `https://${chrome.runtime.id}.chromiumapp.org`);
+      url.searchParams.set('scope', manifest.oauth2.scopes.join(' '));
+
+      // Launch WebAuthFlow to start the Google OAuth flow
+      chrome.identity.launchWebAuthFlow(
+        {
+          url: url.href,
+          interactive: true,
+        },
+        async (redirectedTo: string | undefined) => {
+          if (chrome.runtime.lastError) {
+            console.error("Authentication error:", chrome.runtime.lastError.message);
+          } else if (redirectedTo) {
+            const url = new URL(redirectedTo);
+            const params = new URLSearchParams(url.hash.substring(1));
+            const idToken = params.get('id_token');
+
+            if (idToken) {
+              // Sign in with Supabase using the ID token
+              const { data, error } = await supabase.auth.signInWithIdToken({
+                provider: 'google',
+                token: idToken,
+              });
+
+              if (error) {
+                console.error("Supabase sign-in error:", error.message);
+              } else {
+                setSession(data.session);
+              }
+            } else {
+              console.error("ID token not found in the redirected URL");
+            }
+          }
         }
-      };
-  
-      // Attach the listener for runtime messages
-      chrome.runtime.onMessage.addListener(handleMessage);
-  
-      // Clean up the listener on component unmount
-      // return () => chrome.runtime.onMessage.removeListener(handleMessage);
-    }, []);
-
-  function shortenUrl(url: string): string {
-    try {
-      const parsedUrl = new URL(url);
-      return parsedUrl.host;
-
-    } catch (error) {
-      console.error("Invalid Url", error);
-      return url;
+      );
+    } else {
+      console.error("OAuth client ID or scopes are missing in the manifest");
     }
-  }
-
-  async function handleClick() {
-    let [activeTab] = await chrome.tabs.query({ active: true });
-    updateSavedLinks(modifyTabData(activeTab))
-  }
-
-  const modifyTabData = (tabData: chrome.tabs.Tab) => {
-
-    let parsed = shortenUrl(`${tabData.url}`);
-
-    const newTab = {
-      url: `${tabData.url}`,
-      parsedUrl: parsed,
-      description: `${tabData.title}`,
-      favicon: `${tabData.favIconUrl}`
-    }
-
-    return newTab
-  }
-
-  const updateSavedLinks = async (modifiedTab: SavedUrl) => {
-    setSavedLinks(prevSavedLinks => [...prevSavedLinks, modifiedTab])
-  }
-
+  };
 
   return (
     <>
-      <h1>Up Next</h1>
-      <div className="card">
-        <button onClick={() => handleClick()}>
-          Add to up next
-        </button>
-      </div>
-      <Box sx={{ flexGrow: 1, maxWidth: '100%' }}>
-        {/* <Grid container spacing={5}> */}
-        {/* <Grid size={{xs:12, md:6}}> */}
-        <List
-        >
-          {savedLinks.map((item: SavedUrl) => {
-            return (
-              <SavedTab link={item} />
-            );
-          })
-          }
-        </List>
-        {/* </Grid> */}
-        {/* </Grid> */}
-      </Box>
+    {!session ? (
+        <button onClick={authenticateWithGoogle}>Sign in with Google</button>
+      ) : (
+        // redirect to home
+        // Welcome, {session.user?.email}
+        <Homepage/>
+      )}
     </>
-  )
+  );
 }
-
-export default App
