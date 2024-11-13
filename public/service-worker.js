@@ -12,13 +12,13 @@ chrome.commands.onCommand.addListener((command) => {
   } else if (command === "open_sidebar") {
     console.log(`open sidebar triggered`);
     // togglePanel();
-    // chrome.sidePanel.open
+    chrome.sidePanel.getOptions
     
   }
 });
 
 const sendTabToApp = async () => {
-  let [activeTab] = await chrome.tabs.query({ active: true });
+  let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
       console.log('tab = ', activeTab)
       // Send the tab info to the React app

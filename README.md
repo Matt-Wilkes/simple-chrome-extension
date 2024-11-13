@@ -52,3 +52,5 @@ export default tseslint.config({
 ### Dependencies
 npm install @mui/material @emotion/react @emotion/styled
 npm install @mui/icons-material
+npm install @supabase/supabase-js @supabase/auth-ui-react @supabase/auth-ui-shared
+npm install react-router-dom
