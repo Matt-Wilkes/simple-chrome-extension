@@ -1,13 +1,8 @@
 import './App.css';
-import { useState, useEffect } from 'react';
-import { createClient, Session } from '@supabase/supabase-js';
+// import { useEffect } from 'react';
 import Homepage from './pages/home/Homepage';
-
-// https://supabase.com/docs/guides/auth/social-login/auth-google?queryGroups=platform&platform=chrome-extensions#configure-your-services-id
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string
-);
+import { supabase } from './services/supabaseClient'
+import { useAuthContext } from './context/AuthProvider';
 
 
 interface ManifestOauth2 {
@@ -20,16 +15,10 @@ interface ChromeManifest {
 }
 
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null);
 
-  useEffect(() => {
-    
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-  }, []);
+  // I want to take this into a global context
+  const {session, setSession } = useAuthContext();
 
-  
   const authenticateWithGoogle = () => {
     const manifest = chrome.runtime.getManifest() as ChromeManifest;
     const url = new URL('https://accounts.google.com/o/oauth2/auth');
@@ -84,8 +73,7 @@ export default function App() {
     {!session ? (
         <button onClick={authenticateWithGoogle}>Sign in with Google</button>
       ) : (
-        // redirect to home
-        // Welcome, {session.user?.email}
+        // render home - Think I need a better solution here
         <Homepage/>
       )}
     </>

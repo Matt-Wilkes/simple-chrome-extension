@@ -1,4 +1,4 @@
-import { SavedUrl } from '../pages/types'
+// import { SavedUrl } from '../pages/types'
 import Avatar from '@mui/material/Avatar';
 import ListItem from '@mui/material/ListItem';
 import ListItemAvatar from '@mui/material/ListItemAvatar';
@@ -7,9 +7,10 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import { ListItemButton } from '@mui/material';
+import { TabRow } from '../services/bookmarksService';
 
 
-const SavedTab = ({ link }: { link: SavedUrl }) => {
+const SavedTab = ({ link }: { link:TabRow }) => {
 
     const openNewTab = async (tabUrl: string) => {
         chrome.tabs.create(
@@ -32,13 +33,13 @@ const SavedTab = ({ link }: { link: SavedUrl }) => {
                 >
                 <ListItemAvatar>
                     <Avatar
-                        alt={link.description}
-                        src={link.favicon}
+                        alt={link.description || undefined}
+                        src={link.favicon_url || undefined}
                     />
                 </ListItemAvatar>
                 <ListItemText 
                     primary={link.description}
-                    secondary={link.parsedUrl}
+                    secondary={link.parsed_url}
                 />
                 </ListItemButton>
                 
