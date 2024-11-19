@@ -11,63 +11,67 @@ import { useAuthContext } from '../../context/AuthProvider';
 
 
 function Homepage() {
-  // const [savedLinks, setSavedLinks] = useState<TabRow[]>([])
   const [savedTabs, setSavedTabs] = useState<TabRow[]>([])
+  // const [localTabsUpdated, setlocalTabsUpdated] = useState(false)
   const { session } = useAuthContext()
 
-  // const MyComponent = (props: Props) => { ... }
-  const fetchTabs = async () => {
+  useEffect(() => {
+    postLocalTabsToDb()
+    fetchTabsFromDb();
+  }, [])
+
+  const fetchTabsFromDb = async () => {
     const data = await getAllTabs();
     if (data) {
       setSavedTabs(data)
     }
   }
 
-  useEffect(() => {
-    fetchTabs();
-  }, [])
 
-    // React to changes in the savedLinks array
-  // useEffect(() => {
-  //   console.log('saved link after update', savedTabs);
-  //   // fetchTabs();
-  // }, [savedTabs])
-
-  // useEffect(() => {
-  //   //listener to receive messages from the service worker
-  //   const handleMessage = (receivedMessage: { message: string; data: chrome.tabs.Tab }) => {
-  //     if (receivedMessage?.message === "Tab Info") {
-  //       console.log("Received tab info:", receivedMessage.data);
-  //       updateSavedLinks(modifyTabData(receivedMessage.data));
-  //     }
-  //   };
-
-  //     // Attach the listener for runtime messages
-  //   chrome.runtime.onMessage.addListener(handleMessage);
-
-  //   // Clean up the listener on component unmount
-  //   // return () => chrome.runtime.onMessage.removeListener(handleMessage);
-  // }, []);
-
-
-
-  async function shortenUrl(url: string): Promise<string> {
+  const postLocalTabsToDb = async () => {
     try {
-      const parsedUrl = new URL(url);
-      return parsedUrl.host;
+      const tabs = await getLocalTabs(); 
+      await Promise.all(
+        tabs.map((tab) => handleNewTab(tab))
+      );
+      console.log("All tabs posted to database. Clearing local storage...");
+      chrome.storage.local.clear(() => {
+        console.log("Local storage cleared.");
+      });
 
     } catch (error) {
-      return url;
+      console.error("Error posting tabs to database:", error);
     }
+  };
+
+
+  function getLocalTabs(): Promise<chrome.tabs.Tab[]> {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get("tabsData", (result) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error fetching tabs data:", chrome.runtime.lastError);
+          reject(chrome.runtime.lastError);
+        } else if (result.tabsData) {
+          console.log("Fetched tabs data:", result.tabsData);
+          // setlocalTabsUpdated(true)
+          resolve(result.tabsData);
+        } else {
+          console.log("No tabs data found.");
+          resolve([]);
+        }
+      });
+    });
   }
 
-
-  async function handleClick() {
+  async function getCurrentTab() {
     let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    // updateSavedLinks(modifyTabData(activeTab))
-    const modifiedTab = await modifyTabData(activeTab)
+    return activeTab
+  }
+
+  async function handleNewTab(tab: chrome.tabs.Tab) {
+    const modifiedTab = await modifyTabData(tab)
     const returnedTab = await insertTab(modifiedTab)
-    
+
     if (returnedTab) {
       updateSavedTabs(returnedTab)
     }
@@ -86,6 +90,16 @@ function Homepage() {
     return newTab
   }
 
+  async function shortenUrl(url: string): Promise<string> {
+    try {
+      const parsedUrl = new URL(url);
+      return parsedUrl.host;
+
+    } catch (error) {
+      return url;
+    }
+  }
+
   const updateSavedTabs = async (newTab: TabRow) => {
     setSavedTabs(prevSavedTabs => [...prevSavedTabs, newTab])
   }
@@ -95,7 +109,7 @@ function Homepage() {
     <>
       <h1>Up Next</h1>
       <div className="card">
-        <button onClick={() => handleClick()}>
+        <button onClick={async () => handleNewTab(await getCurrentTab())}>
           Add to up next
         </button>
       </div>

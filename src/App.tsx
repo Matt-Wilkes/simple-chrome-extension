@@ -16,7 +16,6 @@ interface ChromeManifest {
 
 export default function App() {
 
-  // I want to take this into a global context
   const {session, setSession } = useAuthContext();
 
   const authenticateWithGoogle = () => {

@@ -6,37 +6,41 @@
         "default_title": "Click to open panel"
     },
     "background": {
-    "service_worker": "service-worker.js",
-    "type": "module"
-  },
-  "commands": {
-    "save_tab": {
-      "suggested_key": "Alt+Shift+Period",
-      "description": "Add a tab to up next"
+        "service_worker": "service-worker.js",
+        "type": "module"
     },
-    "open_sidebar": {
-      "suggested_key": "Alt+Shift+Comma",
-      "description": "Open the sidebar"
-    }
-},
+    "commands": {
+        "save_tab": {
+            "suggested_key": "Alt+Shift+Period",
+            "description": "Add a tab to up next"
+        },
+        "open_sidebar": {
+            "suggested_key": "Alt+Shift+Comma",
+            "description": "Open the sidebar"
+        }
+    },
     "side_panel": {
-        "default_path": "index.html"
-    },
+    "default_path": "index.html"
+  },
     "permissions": [
         "scripting",
         "sidePanel",
         "tabs",
-        "identity"
+        "identity",
+        "storage"
     ],
     "oauth2": {
-    "client_id": "1055107703373-dupcu4p7b7f157hciik9qq2u5hj6qtl0.apps.googleusercontent.com",
-    "scopes": ["openid", "email", "profile"]
-  },
+        "client_id": "1055107703373-dupcu4p7b7f157hciik9qq2u5hj6qtl0.apps.googleusercontent.com",
+        "scopes": [
+            "openid",
+            "email",
+            "profile"
+        ]
+    },
     "host_permissions": [
         "http://*/*",
         "https://*/*"
     ],
-    
     "icons": {
         "32": "icon-32.png"
     }
