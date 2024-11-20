@@ -5,43 +5,66 @@ import SavedTab from '../../components/SavedTab'
 import Box from '@mui/material/Box';
 // import Grid from '@mui/material/Grid2';
 import List from '@mui/material/List';
-import { getAllTabs, insertTab } from '../../services/bookmarksService';
-import { TabRow } from '../../services/bookmarksService'
+import { getAllTabs, insertTab } from '../../services/supabaseService';
+import { TabRow } from '../../services/supabaseService'
 import { useAuthContext } from '../../context/AuthProvider';
 
 
 function Homepage() {
-  const [savedTabs, setSavedTabs] = useState<TabRow[]>([])
-  // const [localTabsUpdated, setlocalTabsUpdated] = useState(false)
+  const [ userTabs, setUserTabs ] = useState<TabRow[]>([])
   const { session } = useAuthContext()
 
   useEffect(() => {
-    postLocalTabsToDb()
     fetchTabsFromDb();
   }, [])
+
+  useEffect(() => {
+    const checkAndPostLocalTabs = async () => {
+      try {
+        const tabs = await getLocalTabs()
+        if (tabs.length > 0) {
+          await postLocalTabsToDb(tabs)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+    checkAndPostLocalTabs()
+  }, [])
+
 
   const fetchTabsFromDb = async () => {
     const data = await getAllTabs();
     if (data) {
-      setSavedTabs(data)
+      setUserTabs([...data]);
     }
   }
 
+  // const checkForLocalTabs = async () => {
+  //   const tabs = await getLocalTabs(); 
+  //   if (tabs.length > 0) {
+  //     console.log('checkForLocalTabs: local tabs: ', tabs)
+  //     setLocalTabs(true)
+  //     return tabs
+  //   } else {
+  //     console.log('checkForLocalTabs: no tabs');
+  //     return null
+  //   }
+  // }
 
-  const postLocalTabsToDb = async () => {
+  const postLocalTabsToDb = async (tabs: chrome.tabs.Tab[]) => {
     try {
-      const tabs = await getLocalTabs(); 
       await Promise.all(
         tabs.map((tab) => handleNewTab(tab))
       );
       console.log("All tabs posted to database. Clearing local storage...");
       chrome.storage.local.clear(() => {
-        console.log("Local storage cleared.");
+      console.log("Local storage cleared.");
       });
-
     } catch (error) {
       console.error("Error posting tabs to database:", error);
     }
+    await fetchTabsFromDb();
   };
 
 
@@ -53,7 +76,6 @@ function Homepage() {
           reject(chrome.runtime.lastError);
         } else if (result.tabsData) {
           console.log("Fetched tabs data:", result.tabsData);
-          // setlocalTabsUpdated(true)
           resolve(result.tabsData);
         } else {
           console.log("No tabs data found.");
@@ -69,21 +91,22 @@ function Homepage() {
   }
 
   async function handleNewTab(tab: chrome.tabs.Tab) {
-    const modifiedTab = await modifyTabData(tab)
-    const returnedTab = await insertTab(modifiedTab)
+    // const modifiedTab = await modifyTabData(tab)
+    const returnedTab = await insertTab(await modifyTabData(tab))
 
     if (returnedTab) {
-      updateSavedTabs(returnedTab)
+      // run function to append new tab to user tabs
+      await updateUserTabs(returnedTab)
     }
   }
 
   const modifyTabData = async (tabData: chrome.tabs.Tab) => {
-    const parsed = await shortenUrl(`${tabData.url}`);
+    // const parsed = await shortenUrl(`${tabData.url}`);
 
     const newTab = {
       user_id: `${session?.user.id}`,
       url: `${tabData.url}`,
-      parsed_url: parsed,
+      parsed_url: await shortenUrl(`${tabData.url}`),
       description: `${tabData.title}`,
       favicon_url: `${tabData.favIconUrl}`
     }
@@ -100,8 +123,8 @@ function Homepage() {
     }
   }
 
-  const updateSavedTabs = async (newTab: TabRow) => {
-    setSavedTabs(prevSavedTabs => [...prevSavedTabs, newTab])
+  const updateUserTabs = async (newTab: TabRow) => {
+    setUserTabs(prevUserTabs => [...prevUserTabs, newTab])
   }
 
 
@@ -118,7 +141,7 @@ function Homepage() {
         {/* <Grid size={{xs:12, md:6}}> */}
         <List
         >
-          {savedTabs.map((item: TabRow) => {
+          {userTabs.map((item: TabRow) => {
             return (
               <SavedTab link={item} />
             );

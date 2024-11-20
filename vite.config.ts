@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions:{
       input:{
         sidebar: "./index.html",
+        serviceWorker: './public/service-worker.js'
       },
       output: {
         entryFileNames: 'assets/[name].js',
