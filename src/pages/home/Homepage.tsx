@@ -5,7 +5,7 @@ import SavedTab from '../../components/SavedTab'
 import Box from '@mui/material/Box';
 // import Grid from '@mui/material/Grid2';
 import List from '@mui/material/List';
-import { getAllTabs, insertTab } from '../../services/supabaseService';
+import { deleteTabById, getAllTabs, insertTab } from '../../services/supabaseService';
 import { TabRow } from '../../services/supabaseService'
 import { useAuthContext } from '../../context/AuthProvider';
 
@@ -142,7 +142,6 @@ function Homepage() {
     try {
       const parsedUrl = new URL(url);
       return parsedUrl.host;
-
     } catch (error) {
       return url;
     }
@@ -151,6 +150,16 @@ function Homepage() {
   const updateUserTabs = async (newTab: TabRow) => {
     setUserTabs(prevUserTabs => [...prevUserTabs, newTab])
   }
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteTabById(id);
+      setUserTabs((prevUserTabs) => prevUserTabs.filter((tab) => tab.id !== id));
+      console.log(`Tab with ID ${id} deleted successfully.`);
+    } catch (error) {
+      console.error("Error deleting tab:", error);
+    }
+  };
 
 
   return (
@@ -168,7 +177,7 @@ function Homepage() {
         >
           {userTabs.map((item: TabRow) => {
             return (
-              <SavedTab link={item} />
+              <SavedTab key={item.id} link={item} onDelete={handleDelete}/>
             );
           })
           }

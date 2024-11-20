@@ -7,10 +7,10 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import { ListItemButton } from '@mui/material';
-import { TabRow, deleteTabById } from '../services/supabaseService';
+import { TabRow } from '../services/supabaseService';
 
 
-const SavedTab = ({ link }: { link:TabRow }) => {
+const SavedTab = ({ link, onDelete }: { link:TabRow; onDelete: (id: number) => void }) => {
 
     const openNewTab = async (tabUrl: string) => {
         chrome.tabs.create(
@@ -23,7 +23,7 @@ const SavedTab = ({ link }: { link:TabRow }) => {
             <ListItem
                 secondaryAction={
                     <IconButton edge="end" aria-label="delete">
-                        <DeleteIcon onClick={() => deleteTabById(link.id)}/>
+                        <DeleteIcon onClick={() => onDelete(link.id)}/>
                     </IconButton>
                 }
             >
