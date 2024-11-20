@@ -17,18 +17,16 @@ https: chrome.commands.onCommand.addListener((command, tab) => {
 });
 
 async function sendTabToApp() {
+  const activeTab = await getCurrentTab();
   try {
-    const activeTab = await getCurrentTab();
-    chrome.storage.local.get("tabsData", (result) => {
-      const tabsData = result.tabsData || [];
-      console.log("Existing tabs data:", tabsData);
-      tabsData.push(activeTab);
+    chrome.storage.local.get("tabsData", async (result) => {
+      const tabsData = await result.tabsData || [];
+      // console.log("Existing tabs data:", tabsData);
+      await tabsData.push(activeTab);
       chrome.storage.local.set({ tabsData }, () => {
         console.log("Tab data added and saved:", activeTab);
       });
     });
-    // Send a message with tab data
-    // await chrome.runtime.sendMessage({ message: "tab_data", data: activeTab });
   } catch (error) {
     console.error("Error storing tab:", error);
   }
@@ -39,6 +37,5 @@ async function getCurrentTab() {
     active: true,
     currentWindow: true,
   });
-  console.log(activeTab);
   return activeTab;
 }

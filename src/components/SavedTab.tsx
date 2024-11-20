@@ -7,7 +7,7 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import { ListItemButton } from '@mui/material';
-import { TabRow } from '../services/bookmarksService';
+import { TabRow, deleteTabById } from '../services/supabaseService';
 
 
 const SavedTab = ({ link }: { link:TabRow }) => {
@@ -23,7 +23,7 @@ const SavedTab = ({ link }: { link:TabRow }) => {
             <ListItem
                 secondaryAction={
                     <IconButton edge="end" aria-label="delete">
-                        <DeleteIcon />
+                        <DeleteIcon onClick={() => deleteTabById(link.id)}/>
                     </IconButton>
                 }
             >
@@ -43,7 +43,7 @@ const SavedTab = ({ link }: { link:TabRow }) => {
                 />
                 </ListItemButton>
                 
-                <IconButton edge="end" aria-label="delete">
+                <IconButton edge="end" aria-label="reorder">
                     <DragHandleIcon />
                 </IconButton>
             </ListItem>
