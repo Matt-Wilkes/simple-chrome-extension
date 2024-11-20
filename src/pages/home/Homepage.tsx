@@ -12,17 +12,40 @@ import { useAuthContext } from '../../context/AuthProvider';
 
 function Homepage() {
   const [ userTabs, setUserTabs ] = useState<TabRow[]>([])
+  // const [localTabs, setLocalTabs] = useState<chrome.tabs.Tab[]>([])
   const { session } = useAuthContext()
+  
 
   useEffect(() => {
     fetchTabsFromDb();
   }, [])
 
   useEffect(() => {
+    // Listen for messages from the service worker
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+      if (message.message === "tab_data") {
+        console.log("Received tab data:", message.data);
+
+        // Perform some action with the tab data
+        const tab = message.data;
+        console.log(`Tab Title: ${tab.title}, Tab URL: ${tab.url}`);
+        handleNewTab(tab);
+        // Send a response back to the service worker
+        sendResponse({ status: "success", data: "Tab processed successfully." });
+      }
+
+      // Returning true keeps the message channel open for async responses
+      return true;
+    });
+  }, [])
+
+  useEffect(() => {
     const checkAndPostLocalTabs = async () => {
       try {
+        // chck for local tabs
         const tabs = await getLocalTabs()
         if (tabs.length > 0) {
+          // post the local tabs to the DB
           await postLocalTabsToDb(tabs)
         }
       } catch (error) {
@@ -54,6 +77,7 @@ function Homepage() {
 
   const postLocalTabsToDb = async (tabs: chrome.tabs.Tab[]) => {
     try {
+      // for each tab in local storage, create promise, send each one to DB
       await Promise.all(
         tabs.map((tab) => handleNewTab(tab))
       );
@@ -64,7 +88,7 @@ function Homepage() {
     } catch (error) {
       console.error("Error posting tabs to database:", error);
     }
-    await fetchTabsFromDb();
+    await fetchTabsFromDb()
   };
 
 
@@ -91,11 +115,12 @@ function Homepage() {
   }
 
   async function handleNewTab(tab: chrome.tabs.Tab) {
-    // const modifiedTab = await modifyTabData(tab)
-    const returnedTab = await insertTab(await modifyTabData(tab))
+    const modifiedTab = await modifyTabData(tab)
+    const returnedTab = await insertTab(modifiedTab)
 
     if (returnedTab) {
       // run function to append new tab to user tabs
+      console.log('getCurrentTab updating user Tab:', returnedTab)
       await updateUserTabs(returnedTab)
     }
   }
