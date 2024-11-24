@@ -34,38 +34,23 @@ export type Database = {
   }
   public: {
     Tables: {
-      countries: {
-        Row: {
-          id: number
-          name: string
-        }
-        Insert: {
-          id?: never
-          name: string
-        }
-        Update: {
-          id?: never
-          name?: string
-        }
-        Relationships: []
-      }
       tab_group: {
         Row: {
           id: number
           is_default: boolean | null
-          tab_name: string
+          name: string
           user_id: string
         }
         Insert: {
           id?: number
           is_default?: boolean | null
-          tab_name: string
+          name: string
           user_id: string
         }
         Update: {
           id?: number
           is_default?: boolean | null
-          tab_name?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
@@ -78,7 +63,7 @@ export type Database = {
           inserted_at: string
           parsed_url: string | null
           position: number | null
-          tab_group_id: number | null
+          tab_group_id: number
           updated_at: string
           url: string
           user_id: string
@@ -90,7 +75,7 @@ export type Database = {
           inserted_at?: string
           parsed_url?: string | null
           position?: number | null
-          tab_group_id?: number | null
+          tab_group_id: number
           updated_at?: string
           url: string
           user_id: string
@@ -102,7 +87,7 @@ export type Database = {
           inserted_at?: string
           parsed_url?: string | null
           position?: number | null
-          tab_group_id?: number | null
+          tab_group_id?: number
           updated_at?: string
           url?: string
           user_id?: string
