@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box';
 // import Grid from '@mui/material/Grid2';
 import List from '@mui/material/List';
-import { getAllTabGroups, getAllTabs, insertTab, TabRow, TabGroupRow, getDefaultTabGroup } from '../../services/supabaseService';
+import { getAllTabGroups, getAllTabs, insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup } from '../../services/supabaseService';
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
 
@@ -45,7 +45,6 @@ function Homepage() {
       }
     }
     fetchDefaultTabGroup();
-    // console.log("default Tab Group", userDefaultTabGroup);
   }, [userTabGroups]);
 
   
@@ -56,10 +55,7 @@ function Homepage() {
       if (message.message === "tab_data") {
         console.log("Received tab data:", message.data);
         const tab = message.data;
-        // console.log('default Tab Group = ',userDefaultTabGroup.current)
         console.log(`Tab Title: ${tab.title}, Tab URL: ${tab.url}`);
-        // console.log('in useEffect, userTabGroups has data: ', userTabGroupsRef.current)
-        // Send a response back to the service worker
         console.log('Sending tab to DB...')
         
         handleNewTab(tab);
@@ -148,15 +144,11 @@ function Homepage() {
 
   async function handleNewTab(tab: chrome.tabs.Tab) {
    
-    console.log("Default tab group ID:", userDefaultTabGroup);
-    console.log('modifying tab ', tab)
-    const modifiedTab = await modifyTabData(tab) // this seems to happen, fails during this process
-    console.log('tab modified, about to insert tab: ', modifiedTab)
+    const modifiedTab = await modifyTabData(tab) 
     const returnedTab = await insertTab(modifiedTab)
     console.log('tab inserted: ', modifiedTab)
 
     if (returnedTab) {
-      // run function to append new tab to user tabs
       console.log('getCurrentTab updating user Tab:', returnedTab)
       await updateUserTabs(returnedTab)
     }
@@ -164,10 +156,8 @@ function Homepage() {
 
   const modifyTabData = async (tabData: chrome.tabs.Tab) => {
     const parsed = await shortenUrl(`${tabData.url}`);
-    // const tab_group = await getOrCreateDefaultTabGroup()
+    const defaultTabGroup = await getOrCreateDefaultTabGroup()
     console.log('modify tab, current default tab group: ',userDefaultTabGroup.current)
-    
-
 
     const newTab = {
       user_id: `${session?.user.id}`,
@@ -175,7 +165,7 @@ function Homepage() {
       parsed_url: parsed,
       description: `${tabData.title}`,
       favicon_url: `${tabData.favIconUrl}`,
-      tab_group_id: userDefaultTabGroup.current
+      tab_group_id: defaultTabGroup
     }
     return newTab
   }
@@ -193,48 +183,43 @@ function Homepage() {
     setUserTabs(prevUserTabs => [...prevUserTabs, newTab])
   }
 
-  // async function getOrCreateDefaultTabGroup(): Promise<number> {
-  //   try {
-  //     if (userTabGroups.length > 0) {
-  //       const defaultTabGroup = userTabGroups.find((tabGroup) => tabGroup.is_default); // is this returning 'true' or truthy
-  //       console.log('default tab group is :', defaultTabGroup)
-  //       if (defaultTabGroup) {
-  //         return defaultTabGroup.id; // Return the existing default tab group ID
-  //       } else {
-  //         console.log("no default tab group found")
-  //         return 5
-  //         throw new Error("no default tab group found!");
-  //       }
+  const getOrCreateDefaultTabGroup = async (): Promise<number> => {
+    try {
+      if (userDefaultTabGroup.current) {
+        return userDefaultTabGroup.current
+      } else {
+        const newDefaultTabGroup = await createDefaultTabGroup()
+        if (newDefaultTabGroup) {
+          console.log('newly created tab group id: ', newDefaultTabGroup.id)
+          userDefaultTabGroup.current = newDefaultTabGroup.id
+          await fetchTabsGroupsFromDb(); // update the state of tab groups, so tabs render correctly
+          return newDefaultTabGroup.id
+        }
+      }
+    } catch (error) {
+      console.log("error getting default tab group", error)
+      return null!
+    }
+    throw new Error("Error getting default tab group")
+  }
 
-  //     }
-  //     // // Create a default tab group if it doesn't exist
-  //     // const newTabGroup = await createDefaultTabGroup();
-  //     // if (newTabGroup) {
-  //     //   return newTabGroup.id!;
-  //     // }
-  //     // throw new Error("default group creation failed");
-  //   } catch (error) {
-  //     console.error("Error getting or creating default tab group:", error);
-  //     throw new Error("Error getting or creating default tab group");
-  //   }
-  //   console.log('returning 6')
-  //    return 6// fallback
-  // }
-
-  // async function createDefaultTabGroup(): Promise<TabGroupInsert> {
-  //   const defaultTabGroup = {
-  //       is_default: true,
-  //       user_id: `${session?.user.id}`,
-  //       name: 'Default'
-  //   }
-  //   console.log(defaultTabGroup);
-  //   const insertedTabGroup = await insertTabGroup(defaultTabGroup);
-  //   if (insertedTabGroup) {
-  //     return insertedTabGroup
-  //   } else {
-  //     throw new Error("Error creating default tab group")
-  //   }
-  // }
+  const createDefaultTabGroup = async (): Promise<TabGroupRow | null> => {
+      try {
+        const newDefaultTabGroup = await insertTabGroup({
+          is_default: true,
+          name: 'Default',
+          user_id: `${session?.user.id}`
+        })
+        if (newDefaultTabGroup) {
+          return newDefaultTabGroup
+        } else {
+          throw new Error("Error creating default tab group")
+        }
+      } catch (error) {
+        console.log("Error creating default tab group",error)
+        return null
+      }
+  }
 
   return (
     <>
