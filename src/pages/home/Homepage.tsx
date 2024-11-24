@@ -1,39 +1,71 @@
 import '../../App.css'
-import { useEffect, useState } from 'react'
-// import { SavedUrl } from '../types';
-import SavedTab from '../../components/SavedTab'
+import { useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box';
 // import Grid from '@mui/material/Grid2';
 import List from '@mui/material/List';
-import { deleteTabById, getAllTabs, insertTab } from '../../services/supabaseService';
-import { TabRow } from '../../services/supabaseService'
+import { getAllTabGroups, getAllTabs, insertTab, TabRow, TabGroupRow, getDefaultTabGroup } from '../../services/supabaseService';
 import { useAuthContext } from '../../context/AuthProvider';
+import { TabGroup } from '../../components/TabGroup';
+
 
 
 function Homepage() {
-  const [ userTabs, setUserTabs ] = useState<TabRow[]>([])
-  // const [localTabs, setLocalTabs] = useState<chrome.tabs.Tab[]>([])
+  const [userTabs, setUserTabs] = useState<TabRow[]>([])
+  const [userTabGroups, setUserTabGroups] = useState<TabGroupRow[]>([])
+  const userDefaultTabGroup = useRef<number>(0)
   const { session } = useAuthContext()
-  
+
+
 
   useEffect(() => {
-    fetchTabsFromDb();
+    const fetchData = async () => {
+      try {
+        await fetchTabsGroupsFromDb();
+        await fetchTabsFromDb();
+      } catch (error) {
+        console.log('error fetching data', error)
+      }
+    }
+    fetchData();
   }, [])
 
   useEffect(() => {
+    const fetchDefaultTabGroup = async () => {
+      try {
+        const defaultTabGroup = await getDefaultTabGroup();
+        if (defaultTabGroup) {
+          console.log('default Tab Group = ',defaultTabGroup.id)
+          userDefaultTabGroup.current = defaultTabGroup.id
+        } else {
+          console.log("No default group found")
+        }
+        
+      } catch (error) {
+        console.log("error fetching default tab group", error)
+      }
+    }
+    fetchDefaultTabGroup();
+    // console.log("default Tab Group", userDefaultTabGroup);
+  }, [userTabGroups]);
+
+  
+
+  useEffect(() => {
     // Listen for messages from the service worker
-    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener( (message, _sender, sendResponse) => {
       if (message.message === "tab_data") {
         console.log("Received tab data:", message.data);
-
-        // Perform some action with the tab data
         const tab = message.data;
+        // console.log('default Tab Group = ',userDefaultTabGroup.current)
         console.log(`Tab Title: ${tab.title}, Tab URL: ${tab.url}`);
-        handleNewTab(tab);
+        // console.log('in useEffect, userTabGroups has data: ', userTabGroupsRef.current)
         // Send a response back to the service worker
+        console.log('Sending tab to DB...')
+        
+        handleNewTab(tab);
         sendResponse({ status: "success", data: "Tab processed successfully." });
+        
       }
-
       // Returning true keeps the message channel open for async responses
       return true;
     });
@@ -42,10 +74,12 @@ function Homepage() {
   useEffect(() => {
     const checkAndPostLocalTabs = async () => {
       try {
+        
         // chck for local tabs
         const tabs = await getLocalTabs()
         if (tabs.length > 0) {
           // post the local tabs to the DB
+          console.log('local tabs = ', tabs)
           await postLocalTabsToDb(tabs)
         }
       } catch (error) {
@@ -63,17 +97,15 @@ function Homepage() {
     }
   }
 
-  // const checkForLocalTabs = async () => {
-  //   const tabs = await getLocalTabs(); 
-  //   if (tabs.length > 0) {
-  //     console.log('checkForLocalTabs: local tabs: ', tabs)
-  //     setLocalTabs(true)
-  //     return tabs
-  //   } else {
-  //     console.log('checkForLocalTabs: no tabs');
-  //     return null
-  //   }
-  // }
+  const fetchTabsGroupsFromDb = async () => {
+    const data = await getAllTabGroups();
+    if (data) {
+      console.log("Fetched Tab Groups:", data);
+      setUserTabGroups([...data]);
+    }
+    
+  }
+
 
   const postLocalTabsToDb = async (tabs: chrome.tabs.Tab[]) => {
     try {
@@ -83,7 +115,7 @@ function Homepage() {
       );
       console.log("All tabs posted to database. Clearing local storage...");
       chrome.storage.local.clear(() => {
-      console.log("Local storage cleared.");
+        console.log("Local storage cleared.");
       });
     } catch (error) {
       console.error("Error posting tabs to database:", error);
@@ -115,8 +147,13 @@ function Homepage() {
   }
 
   async function handleNewTab(tab: chrome.tabs.Tab) {
-    const modifiedTab = await modifyTabData(tab)
+   
+    console.log("Default tab group ID:", userDefaultTabGroup);
+    console.log('modifying tab ', tab)
+    const modifiedTab = await modifyTabData(tab) // this seems to happen, fails during this process
+    console.log('tab modified, about to insert tab: ', modifiedTab)
     const returnedTab = await insertTab(modifiedTab)
+    console.log('tab inserted: ', modifiedTab)
 
     if (returnedTab) {
       // run function to append new tab to user tabs
@@ -126,14 +163,19 @@ function Homepage() {
   }
 
   const modifyTabData = async (tabData: chrome.tabs.Tab) => {
-    // const parsed = await shortenUrl(`${tabData.url}`);
+    const parsed = await shortenUrl(`${tabData.url}`);
+    // const tab_group = await getOrCreateDefaultTabGroup()
+    console.log('modify tab, current default tab group: ',userDefaultTabGroup.current)
+    
+
 
     const newTab = {
       user_id: `${session?.user.id}`,
       url: `${tabData.url}`,
-      parsed_url: await shortenUrl(`${tabData.url}`),
+      parsed_url: parsed,
       description: `${tabData.title}`,
-      favicon_url: `${tabData.favIconUrl}`
+      favicon_url: `${tabData.favIconUrl}`,
+      tab_group_id: userDefaultTabGroup.current
     }
     return newTab
   }
@@ -151,16 +193,48 @@ function Homepage() {
     setUserTabs(prevUserTabs => [...prevUserTabs, newTab])
   }
 
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteTabById(id);
-      setUserTabs((prevUserTabs) => prevUserTabs.filter((tab) => tab.id !== id));
-      console.log(`Tab with ID ${id} deleted successfully.`);
-    } catch (error) {
-      console.error("Error deleting tab:", error);
-    }
-  };
+  // async function getOrCreateDefaultTabGroup(): Promise<number> {
+  //   try {
+  //     if (userTabGroups.length > 0) {
+  //       const defaultTabGroup = userTabGroups.find((tabGroup) => tabGroup.is_default); // is this returning 'true' or truthy
+  //       console.log('default tab group is :', defaultTabGroup)
+  //       if (defaultTabGroup) {
+  //         return defaultTabGroup.id; // Return the existing default tab group ID
+  //       } else {
+  //         console.log("no default tab group found")
+  //         return 5
+  //         throw new Error("no default tab group found!");
+  //       }
 
+  //     }
+  //     // // Create a default tab group if it doesn't exist
+  //     // const newTabGroup = await createDefaultTabGroup();
+  //     // if (newTabGroup) {
+  //     //   return newTabGroup.id!;
+  //     // }
+  //     // throw new Error("default group creation failed");
+  //   } catch (error) {
+  //     console.error("Error getting or creating default tab group:", error);
+  //     throw new Error("Error getting or creating default tab group");
+  //   }
+  //   console.log('returning 6')
+  //    return 6// fallback
+  // }
+
+  // async function createDefaultTabGroup(): Promise<TabGroupInsert> {
+  //   const defaultTabGroup = {
+  //       is_default: true,
+  //       user_id: `${session?.user.id}`,
+  //       name: 'Default'
+  //   }
+  //   console.log(defaultTabGroup);
+  //   const insertedTabGroup = await insertTabGroup(defaultTabGroup);
+  //   if (insertedTabGroup) {
+  //     return insertedTabGroup
+  //   } else {
+  //     throw new Error("Error creating default tab group")
+  //   }
+  // }
 
   return (
     <>
@@ -175,9 +249,9 @@ function Homepage() {
         {/* <Grid size={{xs:12, md:6}}> */}
         <List
         >
-          {userTabs.map((item: TabRow) => {
+          {userTabGroups.map((tabGroup: TabGroupRow) => {
             return (
-              <SavedTab key={item.id} link={item} onDelete={handleDelete}/>
+              <TabGroup key={tabGroup.id} tabGroup={tabGroup} userTabs={userTabs} setUserTabs={setUserTabs} />
             );
           })
           }
