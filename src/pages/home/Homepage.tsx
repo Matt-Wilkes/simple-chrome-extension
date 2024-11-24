@@ -7,15 +7,11 @@ import { getAllTabGroups, getAllTabs, insertTab, TabRow, TabGroupRow, getDefault
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
 
-
-
 function Homepage() {
   const [userTabs, setUserTabs] = useState<TabRow[]>([])
   const [userTabGroups, setUserTabGroups] = useState<TabGroupRow[]>([])
   const userDefaultTabGroup = useRef<number>(0)
   const { session } = useAuthContext()
-
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,7 +47,7 @@ function Homepage() {
 
   useEffect(() => {
     // Listen for messages from the service worker
-    chrome.runtime.onMessage.addListener( (message, _sender, sendResponse) => {
+    if (chrome?.runtime?.id) {chrome.runtime.onMessage.addListener( (message, _sender, sendResponse) => {
       if (message.message === "tab_data") {
         console.log("Received tab data:", message.data);
         const tab = message.data;
@@ -64,13 +60,14 @@ function Homepage() {
       }
       // Returning true keeps the message channel open for async responses
       return true;
-    });
+    })} else {
+      console.log("Not running in a chrome extension env")
+    };
   }, [])
 
   useEffect(() => {
     const checkAndPostLocalTabs = async () => {
       try {
-        
         // chck for local tabs
         const tabs = await getLocalTabs()
         if (tabs.length > 0) {
@@ -122,7 +119,8 @@ function Homepage() {
 
   function getLocalTabs(): Promise<chrome.tabs.Tab[]> {
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get("tabsData", (result) => {
+      if (chrome?.runtime?.id)
+      {chrome.storage.local.get("tabsData", (result) => {
         if (chrome.runtime.lastError) {
           console.error("Error fetching tabs data:", chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
@@ -134,7 +132,9 @@ function Homepage() {
           resolve([]);
         }
       });
-    });
+    } else {
+      resolve([])
+    }});
   }
 
   async function getCurrentTab() {
