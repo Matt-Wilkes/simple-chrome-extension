@@ -2,6 +2,7 @@ import { Box } from "@mui/material";
 import { TabGroupProps } from "../types";
 import SavedTab from "./SavedTab";
 import { deleteTabById, TabRow } from "../services/supabaseService";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 export function TabGroup({ tabGroup, userTabs, setUserTabs }: TabGroupProps) {
 
@@ -18,15 +19,17 @@ export function TabGroup({ tabGroup, userTabs, setUserTabs }: TabGroupProps) {
       const tabsInGroup = userTabs.filter((tab) => tab.tab_group_id === tabGroup.id);
 
     return (
-            <Box
-            >
+            <Box >
                 {tabGroup.name}
+                <SortableContext items={tabsInGroup} strategy={verticalListSortingStrategy}>
+                    {/* equivalent of 'tasks' in tutorial */}
                 {tabsInGroup.map((tab: TabRow) => {
                     return (
-                        <SavedTab key={tab.id} tab={tab} onDelete={handleDelete} />
+                        <SavedTab key={tab.id} tab={tab} handleDelete={handleDelete}/>
                     );
                 })
                 }
+                </SortableContext>
 
             </Box>
 

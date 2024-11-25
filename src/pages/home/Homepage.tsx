@@ -6,12 +6,17 @@ import List from '@mui/material/List';
 import { getAllTabGroups, getAllTabs, insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup } from '../../services/supabaseService';
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
+import {closestCorners, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors} from '@dnd-kit/core';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { MouseSensor, TouchSensor } from '../../utils/dndCustomSensors';
 
 function Homepage() {
   const [userTabs, setUserTabs] = useState<TabRow[]>([])
   const [userTabGroups, setUserTabGroups] = useState<TabGroupRow[]>([])
   const userDefaultTabGroup = useRef<number>(0)
   const { session } = useAuthContext()
+
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -220,6 +225,36 @@ function Homepage() {
       }
   }
 
+  const getTabPos = (id: number) => 
+    userTabs.findIndex((userTab) => 
+      userTab.id === id);
+
+  const handleDragEnd = (event: { active: any; over: any; }) => {
+    // active is the element we're currently dragging
+    // over is the element that will be replaced once we let go of the active element
+    const {active, over} = event
+    // if the same position 
+    if (active.id === over.id) return;
+
+    setUserTabs(userTab => {
+      // get the original position of the element BEFORE dragging
+      const originalPos = getTabPos(active.id);
+      // get the new position of where it should be after the array has updated
+      const newPos = getTabPos(over.id)
+
+      return arrayMove(userTab, originalPos, newPos)
+    })
+  } 
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(MouseSensor),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
+    })
+  )
+
   return (
     <>
       <h1>Up Next</h1>
@@ -228,14 +263,17 @@ function Homepage() {
           Add to up next
         </button>
       </div>
+      
       <Box sx={{ flexGrow: 1, maxWidth: '100%' }}>
         {/* <Grid container spacing={5}> */}
         {/* <Grid size={{xs:12, md:6}}> */}
-        <List
-        >
+        <List>
           {userTabGroups.map((tabGroup: TabGroupRow) => {
             return (
+              <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
+                {/* this is my equivalent of tutorial column */}
               <TabGroup key={tabGroup.id} tabGroup={tabGroup} userTabs={userTabs} setUserTabs={setUserTabs} />
+              </DndContext>
             );
           })
           }

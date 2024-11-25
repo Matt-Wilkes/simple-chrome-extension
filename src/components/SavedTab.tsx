@@ -7,41 +7,54 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
 import { ListItemButton } from '@mui/material';
 import { SavedTabProps } from '../types';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from "@dnd-kit/utilities"
 
 
-const SavedTab = ({ tab, onDelete }: SavedTabProps) => {
 
-    const openNewTab = async (tabUrl: string) => {
-        chrome.tabs.create(
-            { url: tabUrl }
-        )
-    }
+
+const SavedTab = ({ tab, handleDelete }: SavedTabProps) => {
 
     const {
         description,
         favicon_url,
         id,
-        // inserted_at,
         parsed_url,
         // position,
-        // tab_group_id,
-        // updated_at,
         url,
-        // user_id
     } = tab
+
+    const {attributes, listeners, setNodeRef, transform, transition} = useSortable({id})
+    const style = {transition, transform: CSS.Transform.toString(transform)};
+    
+    const openNewTab = async (tabUrl: string, event: React.MouseEvent<HTMLDivElement>) => {
+        event.stopPropagation()
+        await chrome.tabs.create(
+            { url: tabUrl }
+        )
+        handleDelete(id)
+        console.log(`${id} tab clicked`)
+    }
+
+    // const handleDeleteClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    //     event.stopPropagation();
+    //     console.log(`${id} delete clicked`)
+    //     handleDelete(id);
+    //   };
+    
 
     return (
         <>
-            <ListItem
+            <ListItem ref={setNodeRef} style={style}
                 secondaryAction={
-                    <IconButton onClick={() => onDelete(id)} edge="end" aria-label="delete">
+                    <IconButton data-no-dnd="true" onClick={() => handleDelete(id)} edge="end" aria-label="delete">
                         <DeleteIcon />
                     </IconButton>
                 }
             >
 
-                <ListItemButton
-                    onClick={() => openNewTab(`${url}`)}
+                <ListItemButton data-no-dnd="true" 
+                    onClick={(e) => openNewTab(`${url}`, e)}
                 >
                     <ListItemAvatar>
                         <Avatar
@@ -55,7 +68,7 @@ const SavedTab = ({ tab, onDelete }: SavedTabProps) => {
                     />
                 </ListItemButton>
 
-                <IconButton edge="end" aria-label="reorder">
+                <IconButton {...attributes} {...listeners} edge="end" aria-label="reorder">
                     <DragHandleIcon />
                 </IconButton>
             </ListItem>
