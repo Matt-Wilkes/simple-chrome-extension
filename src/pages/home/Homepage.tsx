@@ -7,20 +7,16 @@ import { getAllTabGroups, getAllTabs, insertTab, TabRow, TabGroupRow, getDefault
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
 
-
-
 function Homepage() {
   const [userTabs, setUserTabs] = useState<TabRow[]>([])
   const [userTabGroups, setUserTabGroups] = useState<TabGroupRow[]>([])
   const userDefaultTabGroup = useRef<number>(0)
   const { session } = useAuthContext()
 
-
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await fetchTabsGroupsFromDb();
+        await fetchTabGroupsFromDb();
         await fetchTabsFromDb();
       } catch (error) {
         console.log('error fetching data', error)
@@ -30,50 +26,39 @@ function Homepage() {
   }, [])
 
   useEffect(() => {
-    const fetchDefaultTabGroup = async () => {
-      try {
-        const defaultTabGroup = await getDefaultTabGroup();
-        if (defaultTabGroup) {
-          console.log('default Tab Group = ',defaultTabGroup.id)
-          userDefaultTabGroup.current = defaultTabGroup.id
-        } else {
-          console.log("No default group found")
-        }
-        
-      } catch (error) {
-        console.log("error fetching default tab group", error)
-      }
-    }
-    fetchDefaultTabGroup();
+    getOrCreateDefaultTabGroup();
   }, [userTabGroups]);
 
   
 
   useEffect(() => {
     // Listen for messages from the service worker
-    chrome.runtime.onMessage.addListener( (message, _sender, sendResponse) => {
+    if (chrome?.runtime?.id) 
+      {chrome.runtime.onMessage.addListener( (message, _sender, sendResponse) => {
       if (message.message === "tab_data") {
         console.log("Received tab data:", message.data);
         const tab = message.data;
         console.log(`Tab Title: ${tab.title}, Tab URL: ${tab.url}`);
         console.log('Sending tab to DB...')
-        
         handleNewTab(tab);
         sendResponse({ status: "success", data: "Tab processed successfully." });
         
       }
       // Returning true keeps the message channel open for async responses
       return true;
-    });
+    })} else {
+      console.log("Not running in a chrome extension env")
+    };
   }, [])
 
   useEffect(() => {
     const checkAndPostLocalTabs = async () => {
       try {
-        
-        // chck for local tabs
         const tabs = await getLocalTabs()
-        if (tabs.length > 0) {
+        if (userDefaultTabGroup.current === 0 && tabs.length > 0) {
+          await fetchTabsFromDb()
+          await postLocalTabsToDb(tabs)
+        } else if (tabs.length > 0) {
           // post the local tabs to the DB
           console.log('local tabs = ', tabs)
           await postLocalTabsToDb(tabs)
@@ -93,7 +78,7 @@ function Homepage() {
     }
   }
 
-  const fetchTabsGroupsFromDb = async () => {
+  const fetchTabGroupsFromDb = async () => {
     const data = await getAllTabGroups();
     if (data) {
       console.log("Fetched Tab Groups:", data);
@@ -122,7 +107,8 @@ function Homepage() {
 
   function getLocalTabs(): Promise<chrome.tabs.Tab[]> {
     return new Promise((resolve, reject) => {
-      chrome.storage.local.get("tabsData", (result) => {
+      if (chrome?.runtime?.id)
+      {chrome.storage.local.get("tabsData", (result) => {
         if (chrome.runtime.lastError) {
           console.error("Error fetching tabs data:", chrome.runtime.lastError);
           reject(chrome.runtime.lastError);
@@ -134,17 +120,27 @@ function Homepage() {
           resolve([]);
         }
       });
-    });
+    } else {
+      resolve([])
+    }});
   }
 
   async function getCurrentTab() {
-    let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    return activeTab
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!activeTab || activeTab.id === undefined) {
+        throw new Error("No active tab or tab ID found.");
+      }
+      await chrome.tabs.remove(activeTab.id);
+      return activeTab;
+    } catch (error) {
+      console.error("Error in getCurrentTab:", error);
+      throw error;
+    }
   }
 
   async function handleNewTab(tab: chrome.tabs.Tab) {
-   
-    const modifiedTab = await modifyTabData(tab) 
+    const modifiedTab = await modifyTabData(tab, userDefaultTabGroup.current) 
     const returnedTab = await insertTab(modifiedTab)
     console.log('tab inserted: ', modifiedTab)
 
@@ -154,9 +150,8 @@ function Homepage() {
     }
   }
 
-  const modifyTabData = async (tabData: chrome.tabs.Tab) => {
+  const modifyTabData = async (tabData: chrome.tabs.Tab, defaultTabGroup: number) => {
     const parsed = await shortenUrl(`${tabData.url}`);
-    const defaultTabGroup = await getOrCreateDefaultTabGroup()
     console.log('modify tab, current default tab group: ',userDefaultTabGroup.current)
 
     const newTab = {
@@ -185,14 +180,18 @@ function Homepage() {
 
   const getOrCreateDefaultTabGroup = async (): Promise<number> => {
     try {
-      if (userDefaultTabGroup.current) {
+      const defaultTabGroup = await getDefaultTabGroup();
+      if (defaultTabGroup) {
+        console.log('default Tab Group = ',defaultTabGroup.id)
+        if (defaultTabGroup.id !== 0 )
+        userDefaultTabGroup.current = defaultTabGroup.id
         return userDefaultTabGroup.current
       } else {
         const newDefaultTabGroup = await createDefaultTabGroup()
         if (newDefaultTabGroup) {
           console.log('newly created tab group id: ', newDefaultTabGroup.id)
           userDefaultTabGroup.current = newDefaultTabGroup.id
-          await fetchTabsGroupsFromDb(); // update the state of tab groups, so tabs render correctly
+          await fetchTabGroupsFromDb(); // update the state of tab groups, so tabs render correctly
           return newDefaultTabGroup.id
         }
       }
