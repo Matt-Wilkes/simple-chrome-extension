@@ -12,9 +12,13 @@ import { SavedTabProps } from '../types';
 const SavedTab = ({ tab, onDelete }: SavedTabProps) => {
 
     const openNewTab = async (tabUrl: string) => {
-        chrome.tabs.create(
-            { url: tabUrl }
-        )
+        try {
+            await chrome.tabs.create({ url: tabUrl })
+            onDelete(id)
+        } catch (error) {
+            console.log("error following tab click:", error)
+        }
+        
     }
 
     const {
