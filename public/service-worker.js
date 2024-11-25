@@ -3,16 +3,22 @@ chrome.sidePanel
   .catch((error) => console.error(error));
 
 //developer.chrome.com/docs/extensions/reference/api/sidePanel
-https: chrome.commands.onCommand.addListener((command, tab) => {
+chrome.commands.onCommand.addListener((command, tab) => {
   (async () => {
-    if (command === "save_tab") {
-      console.log(`Save tab triggered`);
-      const activeTab = await getCurrentTab();
-      sendTabToApp(activeTab)
-    } else if (command === "open_sidebar") {
-      console.log(`open sidebar triggered`);
-      await chrome.sidePanel.open({ windowId: tab.windowId });
+    try {
+      if (command === "save_tab") {
+        console.log(`Save tab triggered`);
+        const activeTab = await getCurrentTab();
+        await sendTabToApp(activeTab)
+        chrome.tabs.remove(activeTab.id);
+      } else if (command === "open_sidebar") {
+        console.log(`open sidebar triggered`);
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+      }
+    } catch (error) {
+      console.log("error with event: ", error)
     }
+    
   })();
 });
 
