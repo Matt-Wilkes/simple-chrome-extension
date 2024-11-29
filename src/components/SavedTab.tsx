@@ -4,48 +4,51 @@ import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemText from '@mui/material/ListItemText';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
-import DragHandleIcon from '@mui/icons-material/DragHandle';
 import { ListItemButton } from '@mui/material';
 import { SavedTabProps } from '../types';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from "@dnd-kit/utilities"
 
-
-const SavedTab = ({ tab, onDelete }: SavedTabProps) => {
-
-    const openNewTab = async (tabUrl: string) => {
-        try {
-            await chrome.tabs.create({ url: tabUrl })
-            onDelete(id)
-        } catch (error) {
-            console.log("error following tab click:", error)
-        }
-        
-    }
+const SavedTab = ({ tab, handleDelete }: SavedTabProps) => {
 
     const {
         description,
         favicon_url,
         id,
-        // inserted_at,
         parsed_url,
         // position,
-        // tab_group_id,
-        // updated_at,
         url,
-        // user_id
     } = tab
+    // https://docs.dndkit.com/presets/sortable
+    const {attributes, listeners, setNodeRef, transform, transition, data} = useSortable(
+        {id: id, 
+            data: {
+                type: "tab", 
+                tab
+            }
+        })
+    const style = {transition, transform: CSS.Transform.toString(transform)};
+    
+    const openNewTab = async (tabUrl: string, event: React.MouseEvent<HTMLDivElement>) => {
+        event.stopPropagation()
+        await chrome.tabs.create(
+            { url: tabUrl }
+        )
+        handleDelete(id)
+        console.log(`${id} tab clicked`)
+    }
+    
 
     return (
         <>
-            <ListItem
-                secondaryAction={
-                    <IconButton onClick={() => onDelete(id)} edge="end" aria-label="delete">
-                        <DeleteIcon />
-                    </IconButton>
-                }
+            <ListItem 
+            ref={setNodeRef} 
+            style={style}
+            {...attributes} {...listeners}
             >
-
                 <ListItemButton
-                    onClick={() => openNewTab(`${url}`)}
+                data-no-dnd="true" 
+                onClick={(e) => openNewTab(`${url}`, e)}
                 >
                     <ListItemAvatar>
                         <Avatar
@@ -54,14 +57,13 @@ const SavedTab = ({ tab, onDelete }: SavedTabProps) => {
                         />
                     </ListItemAvatar>
                     <ListItemText
-                        primary={description}
+                        primary={`${description} | index: ${data.sortable.index}, Container: ${data.sortable.containerId}, items: ${data.sortable.items}`}
                         secondary={parsed_url}
                     />
                 </ListItemButton>
-
-                <IconButton edge="end" aria-label="reorder">
-                    <DragHandleIcon />
-                </IconButton>
+                <IconButton data-no-dnd="true" onClick={() => handleDelete(id)} edge="end" aria-label="delete">
+                        <DeleteIcon />
+                    </IconButton>
             </ListItem>
         </>
 

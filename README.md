@@ -56,3 +56,4 @@ npm install @supabase/supabase-js @supabase/auth-ui-react @supabase/auth-ui-shar
 npm install react-router-dom
 npm install @dnd-kit/core 
 npm install @dnd-kit/sortable
+npm install @dnd-kit/utilities

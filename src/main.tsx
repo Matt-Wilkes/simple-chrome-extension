@@ -31,12 +31,14 @@ const router = createHashRouter([
 });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <AuthContextProvider>
+  
     <React.StrictMode>
+      <AuthContextProvider>
       {/* defer the entry point to react router */}
       <RouterProvider router={router} future={{
         v7_startTransition: true,
       }} />
+      </AuthContextProvider>
     </React.StrictMode>
-  </AuthContextProvider>
+  
 );

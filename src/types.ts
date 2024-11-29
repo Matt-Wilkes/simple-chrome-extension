@@ -10,12 +10,12 @@ import { TabGroupRow, TabRow } from "./services/supabaseService";
 
 export type SavedTabProps = {
     tab:TabRow; 
-    onDelete: (id: number) => void;
+    handleDelete: (id: number) => void;
 }
 
 export type TabGroupProps = {
     tabGroup: TabGroupRow;
     userTabs: TabRow[];
-    setUserTabs: React.Dispatch<React.SetStateAction<TabRow[]>>;
+    handleDelete: (id: number) => void; 
 }
 
