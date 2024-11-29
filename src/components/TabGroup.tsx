@@ -1,35 +1,67 @@
 import { Box } from "@mui/material";
 import { TabGroupProps } from "../types";
 import SavedTab from "./SavedTab";
-import { deleteTabById, TabRow } from "../services/supabaseService";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { TabRow } from "../services/supabaseService";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useMemo } from "react";
+import { CSS } from "@dnd-kit/utilities"
 
-export function TabGroup({ tabGroup, userTabs, setUserTabs }: TabGroupProps) {
+export function TabGroup({ tabGroup, userTabs, handleDelete }: TabGroupProps) {
 
-    const handleDelete = async (id: number) => {
-        try {
-          await deleteTabById(id);
-          setUserTabs((prevUserTabs) => prevUserTabs.filter((tab) => tab.id !== id));
-          console.log(`Tab with ID ${id} deleted successfully.`);
-        } catch (error) {
-          console.error("Error deleting tab:", error);
-        }
-      };
+    const {
+        id,
+    } = tabGroup
 
-      const tabsInGroup = userTabs.filter((tab) => tab.tab_group_id === tabGroup.id);
+    const userTabsIds = useMemo(() => userTabs.map((tab) => tab.id), [userTabs])
+
+    const {setNodeRef, attributes, listeners,  transform, transition, isDragging} = useSortable(
+        {id: id, 
+            data: {
+                type: "tabGroup", 
+                tabGroup
+            }
+        })
+
+        const style = {
+            transform: CSS.Transform.toString(transform),
+            transition,
+        };
+
+    if (isDragging) {
+        return (
+            <Box component="div"
+            ref={setNodeRef} //so dnd can handle the div
+            style={style}
+            sx={{bgcolor: 'black',}}
+            >
+                
+            </Box>
+        )
+    }
 
     return (
-            <Box >
+            <Box component="div"
+            ref={setNodeRef} //so dnd can handle the div
+            style={style}
+            // sx={{bgcolor: 'pink',}}
+            >
+                
+                <Box 
+                {...attributes}
+                {...listeners}
+                >
                 {tabGroup.name}
-                <SortableContext items={tabsInGroup} strategy={verticalListSortingStrategy}>
+                <SortableContext 
+                items={userTabsIds} 
+                strategy={verticalListSortingStrategy}>
                     {/* equivalent of 'tasks' in tutorial */}
-                {tabsInGroup.map((tab: TabRow) => {
-                    return (
-                        <SavedTab key={tab.id} tab={tab} handleDelete={handleDelete}/>
-                    );
-                })
+                {userTabs.map((tab: TabRow) => (
+                    <SavedTab key={tab.id} tab={tab} handleDelete={handleDelete}/>
+                    ))
                 }
                 </SortableContext>
+                </Box>
+                
 
             </Box>
 

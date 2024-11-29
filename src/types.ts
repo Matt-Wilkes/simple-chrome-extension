@@ -16,6 +16,6 @@ export type SavedTabProps = {
 export type TabGroupProps = {
     tabGroup: TabGroupRow;
     userTabs: TabRow[];
-    setUserTabs: React.Dispatch<React.SetStateAction<TabRow[]>>;
+    handleDelete: (id: number) => void; 
 }
 
