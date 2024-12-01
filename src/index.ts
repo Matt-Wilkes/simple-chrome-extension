@@ -37,19 +37,19 @@ export type Database = {
       tab_group: {
         Row: {
           id: number
-          is_default: boolean | null
+          is_default: boolean
           name: string
           user_id: string
         }
         Insert: {
           id?: number
-          is_default?: boolean | null
+          is_default?: boolean
           name: string
           user_id: string
         }
         Update: {
           id?: number
-          is_default?: boolean | null
+          is_default?: boolean
           name?: string
           user_id?: string
         }
@@ -62,8 +62,8 @@ export type Database = {
           id: number
           inserted_at: string
           parsed_url: string | null
-          position: number | null
-          tab_group_id: number
+          position: number
+          tab_group_id: number | null
           updated_at: string
           url: string
           user_id: string
@@ -74,8 +74,8 @@ export type Database = {
           id?: number
           inserted_at?: string
           parsed_url?: string | null
-          position?: number | null
-          tab_group_id: number
+          position: number
+          tab_group_id?: number | null
           updated_at?: string
           url: string
           user_id: string
@@ -86,8 +86,8 @@ export type Database = {
           id?: number
           inserted_at?: string
           parsed_url?: string | null
-          position?: number | null
-          tab_group_id?: number
+          position?: number
+          tab_group_id?: number | null
           updated_at?: string
           url?: string
           user_id?: string

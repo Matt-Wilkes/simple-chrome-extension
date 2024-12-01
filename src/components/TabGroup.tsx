@@ -13,7 +13,7 @@ export function TabGroup({ tabGroup, userTabs, handleDelete }: TabGroupProps) {
     } = tabGroup
 
     const userTabsIds = useMemo(() => userTabs.map((tab) => tab.id), [userTabs])
-
+    
     const {setNodeRef, attributes, listeners,  transform, transition, isDragging} = useSortable(
         {id: id, 
             data: {

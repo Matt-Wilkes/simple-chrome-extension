@@ -20,7 +20,7 @@ const SavedTab = ({ tab, handleDelete }: SavedTabProps) => {
         url,
     } = tab
     // https://docs.dndkit.com/presets/sortable
-    const {attributes, listeners, setNodeRef, transform, transition, data} = useSortable(
+    const {attributes, listeners, setNodeRef, transform, transition} = useSortable(
         {id: id, 
             data: {
                 type: "tab", 
@@ -57,7 +57,7 @@ const SavedTab = ({ tab, handleDelete }: SavedTabProps) => {
                         />
                     </ListItemAvatar>
                     <ListItemText
-                        primary={`${description} | index: ${data.sortable.index}, Container: ${data.sortable.containerId}, items: ${data.sortable.items}`}
+                        primary={`${description}`}
                         secondary={parsed_url}
                     />
                 </ListItemButton>
