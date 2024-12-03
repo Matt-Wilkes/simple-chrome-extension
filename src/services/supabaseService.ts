@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient"
 import { Database } from "../index";
+import { UpdateTab } from "../types";
 // import { QueryData } from "@supabase/supabase-js";
 // import { QueryResult, QueryData, QueryError } from '@supabase/supabase-js'
 
@@ -104,9 +105,13 @@ export const insertTab = async (tab: TabInsert): Promise<TabRow | null> => {
     return data;
 };
 
-export const updateTabPosition = async (tab: TabInsert): Promise<TabUpdate | null> => {
-    const { data, error } = await supabase.from("tabs").insert(tab).select()
-        .single();
+export const updateTabPosition = async (tab: UpdateTab, id: number ): Promise<TabUpdate | null> => {
+    const { data, error } = await supabase
+    .from("tabs")
+    .update(tab)
+    .eq("id", id)
+    .select()
+    .single()
 
     if (error) {
         console.error(

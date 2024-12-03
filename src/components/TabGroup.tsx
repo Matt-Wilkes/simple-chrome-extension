@@ -3,16 +3,16 @@ import { TabGroupProps } from "../types";
 import SavedTab from "./SavedTab";
 import { TabRow } from "../services/supabaseService";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useMemo } from "react";
+// import { useMemo } from "react";
 import { CSS } from "@dnd-kit/utilities"
 
-export function TabGroup({ tabGroup, userTabs, handleDelete }: TabGroupProps) {
+export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete }: TabGroupProps) {
 
     const {
         id,
     } = tabGroup
 
-    const userTabsIds = useMemo(() => userTabs.map((tab) => tab.id), [userTabs])
+    // const userTabsIds = useMemo(() => userTabs.map((tab) => tab.id), [userTabs])
     
     const {setNodeRef, attributes, listeners,  transform, transition, isDragging} = useSortable(
         {id: id, 
@@ -56,7 +56,7 @@ export function TabGroup({ tabGroup, userTabs, handleDelete }: TabGroupProps) {
                 strategy={verticalListSortingStrategy}>
                     {/* equivalent of 'tasks' in tutorial */}
                 {userTabs.map((tab: TabRow) => (
-                    <SavedTab key={tab.id} tab={tab} handleDelete={handleDelete}/>
+                    <SavedTab key={tab.id} tab={tab} tabGroupId={id} handleDelete={handleDelete}/>
                     ))
                 }
                 </SortableContext>

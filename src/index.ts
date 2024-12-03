@@ -63,7 +63,7 @@ export type Database = {
           inserted_at: string
           parsed_url: string | null
           position: number
-          tab_group_id: number | null
+          tab_group_id: number
           updated_at: string
           url: string
           user_id: string
@@ -75,7 +75,7 @@ export type Database = {
           inserted_at?: string
           parsed_url?: string | null
           position: number
-          tab_group_id?: number | null
+          tab_group_id: number
           updated_at?: string
           url: string
           user_id: string
@@ -87,7 +87,7 @@ export type Database = {
           inserted_at?: string
           parsed_url?: string | null
           position?: number
-          tab_group_id?: number | null
+          tab_group_id?: number
           updated_at?: string
           url?: string
           user_id?: string
