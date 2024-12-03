@@ -9,7 +9,7 @@ import { SavedTabProps } from '../types';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from "@dnd-kit/utilities"
 
-const SavedTab = ({ tab, handleDelete }: SavedTabProps) => {
+const SavedTab = ({ tabGroupId, tab, handleDelete }: SavedTabProps) => {
 
     const {
         description,
@@ -24,7 +24,8 @@ const SavedTab = ({ tab, handleDelete }: SavedTabProps) => {
         {id: id, 
             data: {
                 type: "tab", 
-                tab
+                tab,
+                tabGroup: tabGroupId
             }
         })
     const style = {transition, transform: CSS.Transform.toString(transform)};
