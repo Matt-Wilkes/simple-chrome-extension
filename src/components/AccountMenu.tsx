@@ -16,6 +16,7 @@ export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [firstName] = useState<string | null>(session?.user.user_metadata.full_name.split(" ")[0])
   const [surname] = useState<string | null>(session?.user.user_metadata.full_name.split(" ")[1])
+  const [avatar] = useState<string | null >(session?.user?.identities?.[0]?.identity_data?.avatar_url ?? "")
 
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -29,6 +30,8 @@ export default function AccountMenu() {
     setSession(null)
     setAnchorEl(null);
   };
+
+
   return (
     <Fragment>
       <Box sx={{ display: 'flex', alignItems: 'start', justifyContent: 'end', textAlign: 'center' }}>
@@ -42,14 +45,14 @@ export default function AccountMenu() {
             aria-expanded={open ? 'true' : undefined}
           >
             <Avatar
-        sx={{ width: 50, height: 50, bgcolor: cyan[200] }}
-        alt="r w"
-        src="/broken-image.jpg"
-      >
-        {
-        (firstName && surname) && (`${firstName[0]}${surname[0]}`)
-        } 
-      </Avatar>
+              sx={{ width: 50, height: 50, bgcolor: cyan[200] }}
+              alt="r w"
+              src={`${avatar}`}
+            >
+              {
+                (firstName && surname) && (`${firstName[0]}${surname[0]}`)
+              }
+            </Avatar>
           </IconButton>
         </Tooltip>
       </Box>
