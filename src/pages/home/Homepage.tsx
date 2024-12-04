@@ -1,7 +1,6 @@
 import '../../App.css'
 import { isEqual } from 'lodash'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Box from '@mui/material/Box';
 import { getAllTabGroups, insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup, deleteTabById, getAllTabsSortedByPos, getLatestTabPosition, updateTabPosition } from '../../services/supabaseService';
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
@@ -11,6 +10,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates } from '@dnd-ki
 import { createPortal } from 'react-dom';
 import SavedTab from '../../components/SavedTab';
 import { NewTab } from '../../types';
+import { Box, Container } from '@mui/material';
+import AccountMenu from '../../components/AccountMenu';
 
 function Homepage() {
   const userDefaultTabGroup = useRef<number>(0)
@@ -30,6 +31,7 @@ function Homepage() {
   const userTabsIds = useMemo(() => userTabs.map((tab) => tab.id), [userTabs])
 
 
+
   useEffect(() => {
     const fetchAndPostData = async () => {
       try {
@@ -40,7 +42,7 @@ function Homepage() {
       } catch (error) {
         console.log('error fetching data or posting local tab data', error) // better messaging needed here
       }
-   
+
     }
     fetchAndPostData();
   }, [])
@@ -194,7 +196,7 @@ function Homepage() {
       description: `${tabData.title}`,
       favicon_url: `${tabData.favIconUrl}`,
       parsed_url: new URL(tabData.url || "").host,
-      position: latestTabPos, 
+      position: latestTabPos,
       tab_group_id: defaultTabGroup,
       url: `${tabData.url}`,
       user_id: `${session?.user.id}`
@@ -287,35 +289,35 @@ function Homepage() {
     // active is the element we're currently dragging
     // over is the element that will be replaced once we let go of the active element
     const { active, over } = event
- 
+
     if (!over) return;
-    
+
     const activeId = active.id;
     const overId = over.id;
 
-    
-    
+
+
     try {
-    const prevUserTabs = prevUserTabsRef.current;
-       // filter through user tabs
-    const updatedTabs = userTabs.filter((tab) =>
-      // for each tab, .some through prevUserTabs
-     // if the prevTab.id is equal to the tab.id AND previous tab is not equal to current tab
+      const prevUserTabs = prevUserTabsRef.current;
+      // filter through user tabs
+      const updatedTabs = userTabs.filter((tab) =>
+        // for each tab, .some through prevUserTabs
+        // if the prevTab.id is equal to the tab.id AND previous tab is not equal to current tab
         prevUserTabs.some((prevTab) => prevTab.id === tab.id && !isEqual(prevTab, tab)
         )
-    );
+      );
 
-    console.log('DRAG END Updated tabs', updatedTabs)
-    // set prevUserTabsRef.current to current user tabs
-    updatedTabs.forEach((tab) => updateTabPosition({
-      position: tab.position,
-      tab_group_id: tab.tab_group_id
-    }, tab.id))
-      
+      console.log('DRAG END Updated tabs', updatedTabs)
+      // set prevUserTabsRef.current to current user tabs
+      updatedTabs.forEach((tab) => updateTabPosition({
+        position: tab.position,
+        tab_group_id: tab.tab_group_id
+      }, tab.id))
+
     } catch (error) {
       console.log(error)
     }
-   
+
     prevUserTabsRef.current = userTabs;
 
     // if they are equal, do nothing
@@ -366,31 +368,33 @@ function Homepage() {
         console.log('currentTabGroup id: ', currentTabGroupId.current)
         console.log('sortable tabs: ', userTabsIds)
         // update the 'position' of any tabs that have changed 
-        
+
         const updatedUserTabs = arrayMove(userTabs, activeIndex, overIndex)
-        
+
         // create array of tabs in the NEW group, update the position property based on their position in the array
         const newGroupIndexes = updatedUserTabs.filter(tab => tab.tab_group_id === overTabGroupId).map((item, index) => ({
           ...item,
-          position: index}));
-        
-          // create array of tabs in the PREVIOUS group, update the position property based on their position in the array
+          position: index
+        }));
+
+        // create array of tabs in the PREVIOUS group, update the position property based on their position in the array
         const prevGroupIndexes = updatedUserTabs.filter(tab => tab.tab_group_id === currentTabGroupId.current).map((item, index) => ({
           ...item,
-          position: index}))
-        
+          position: index
+        }))
+
         console.log('changed tabs in group: ', newGroupIndexes);
         console.log('changed tabs in prev group: ', prevGroupIndexes);
-        
+
         const finalUpdatedUserTabs = updatedUserTabs.map((tab) => {
           const updatedTab =
             newGroupIndexes.find((item) => item.id === tab.id) ||
             prevGroupIndexes.find((item) => item.id === tab.id);
-    
-          return updatedTab || tab; 
+
+          return updatedTab || tab;
         });
         console.log('final user tabs', finalUpdatedUserTabs)
- 
+
         return finalUpdatedUserTabs
       });
 
@@ -425,21 +429,27 @@ function Homepage() {
 
   return (
     <>
-      <h1>Up Next</h1>
+    
+    <AccountMenu />
+    <Container >
+    <Box sx={{ maxWidth: '90%'}}>
+    <h1>Up Next</h1>
       <div className="card">
         <button onClick={async () => handleNewTab(await getCurrentTab())}>
           Add to up next
         </button>
       </div>
-
-
+      </Box>
+    
+    <Box>
       <DndContext
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={onDragOver}
         collisionDetection={closestCorners}>
-        <Box sx={{ flexGrow: 1, maxWidth: '80%' }}>
+          
+        <Box sx={{ flexGrow: 1, maxWidth: '90%', justifyContent: 'center'}}>
           <SortableContext items={userTabGroupsId}>
             {userTabGroups.map((tabGroup: TabGroupRow) => (
               <TabGroup
@@ -476,7 +486,10 @@ function Homepage() {
           </DragOverlay>,
           document.body
         )}
+        
       </DndContext>
+      </Box>
+      </Container>
     </>
   )
 }
