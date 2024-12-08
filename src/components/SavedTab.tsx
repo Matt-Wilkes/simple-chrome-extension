@@ -52,6 +52,7 @@ const SavedTab = ({ tabGroupId, tab, handleDelete }: SavedTabProps) => {
                 onClick={(e) => openNewTab(`${url}`, e)}
                 >
                     <ListItemAvatar>
+                        {/* style this, too big, no bigger than 40px */}
                         <Avatar
                             alt={description || undefined}
                             src={favicon_url || undefined}

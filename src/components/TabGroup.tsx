@@ -1,7 +1,7 @@
-import { Box, TextField, Typography } from "@mui/material";
+import { Box, FormControlLabel, Switch, TextField, Typography } from "@mui/material";
 import { TabGroupProps } from "../types";
 import SavedTab from "./SavedTab";
-import { TabRow, updateTabGroup } from "../services/supabaseService";
+import { TabRow } from "../services/supabaseService";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 // import { useMemo } from "react";
 import { CSS } from "@dnd-kit/utilities"
@@ -9,15 +9,17 @@ import { purple } from "@mui/material/colors";
 import { useState } from "react";
 import EditIcon from '@mui/icons-material/Edit';
 
-export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete }: TabGroupProps) {
+export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete, changeTabGroupName, updateDefaultTabGroup }: TabGroupProps) {
 
     const {
         id,
-        name
+        name,
+        is_default
     } = tabGroup
 
     const [tabGroupName, setTabGroupName] = useState<string>(name)
     const [editMode, setEditMode] = useState(false);
+    const [isDefault, setIsDefault] = useState(is_default)
 
 
     const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable(
@@ -34,11 +36,11 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete }: TabG
         transition,
     };
 
-    const changeTabGroupName = (id: number, name: string) => {
-        updateTabGroup(id, {
-            name: name
-        })
-    }
+    // const changeTabGroupName = (id: number, name: string) => {
+    //     updateTabGroup(id, {
+    //         name: name
+    //     })
+    // }
 
     if (isDragging) {
         return (
@@ -65,20 +67,25 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete }: TabG
                 sx={{ gap: '10px' }}
             >
 
-                <Box sx={{ alignItems: 'center', minWidth: '45%', maxWidth: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '12px', backgroundColor: '#ffe0b2', borderRadius: '15px' }}>
+                <Box sx={{ alignItems: 'center', minWidth: '45%', maxWidth: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '12px', backgroundColor: 'primary.light', borderRadius: '15px' }}
+                // onBlur={() => {
+                //                     setEditMode(false);
+                //                 }}
+                >
+                    
                     {!editMode && (
                         <>
-                            <Typography>
+                            <Typography
+                                color="primary.contrastText"
+                            >
                                 {tabGroupName}
                             </Typography>
 
                             <EditIcon
                                 sx={{
-                                    color: '#f57c00',
                                     cursor: 'pointer',
                                     '&:hover': {
-                                        backgroundColor: 'inherit',
-                                        color: '#ff6d00',
+                                        color: 'primary.dark',
                                     },
                                     '&:active': {
                                         backgroundColor: 'inherit',
@@ -91,13 +98,16 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete }: TabG
                     {editMode && (
                         <>
                             <TextField
+                                variant="standard"
+                                margin="none"
+                                label="Group name"
                                 value={tabGroupName}
                                 onChange={e => setTabGroupName(e.target.value)}
                                 size="small"
                                 autoFocus
-                                onBlur={() => {
-                                    setEditMode(false);
-                                }}
+                                // onBlur={() => {
+                                //     setEditMode(false);
+                                // }}
                                 onKeyDown={e => {
                                     console.log(e.key)
                                     if (e.key === "Enter") {
@@ -105,21 +115,43 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete }: TabG
                                         setEditMode(false)
                                     }
                                 }}
-                                sx={{ maxWidth: '200px' }}
+                                sx={{ maxWidth: '200px', border: 'none' }}
                             />
+                            <Box>
+                            {isDefault && (
+
+                                <FormControlLabel disabled control={
+                                    <Switch 
+                                    checked={isDefault}
+                                    color="default"
+                                    />
+                                } label="Default" />
+                            )} { !isDefault && (
+
+                                <FormControlLabel control={<Switch 
+                                    checked={isDefault}
+                                    onChange={() => {
+                                        setIsDefault(!isDefault)
+                                        updateDefaultTabGroup(id)
+                                    }}
+                                    color="default"
+                                    />} label="Default" />
+                            )}
                             <EditIcon
+                                onClick={() => {setEditMode(false)}}
                                 sx={{
-                                    color: '#f57c00',
+                                    color: 'primary',
                                     cursor: 'pointer', 
                                     '&:hover': {
                                         backgroundColor: 'inherit',
-                                        color: '#ff6d00',
+                                        color: 'primary.dark',
                                     },
                                     '&:active': {
-                                        backgroundColor: '#000000',
+                                        backgroundColor: 'inherit',
                                     },
                                 }}
                             />
+                            </Box>
                         </>
                     )}
                 </Box>
