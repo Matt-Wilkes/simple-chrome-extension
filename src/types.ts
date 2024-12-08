@@ -11,6 +11,8 @@ export type TabGroupProps = {
     userTabs: TabRow[];
     userTabsIds: number[]
     handleDelete: (id: number) => void; 
+    changeTabGroupName: (id: number, name: string) => void; 
+    updateDefaultTabGroup: (id: number) => void;
 }
 
 export type NewTab = Omit<TabRow,'id' | 'inserted_at' | 'updated_at'>

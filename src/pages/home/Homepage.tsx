@@ -1,7 +1,7 @@
 import '../../App.css'
 import { isEqual } from 'lodash'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getAllTabGroups, insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup, deleteTabById, getAllTabsSortedByPos, getLatestTabPosition, updateTabPosition } from '../../services/supabaseService';
+import { getAllTabGroups, insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup, deleteTabById, getAllTabsSortedByPos, getLatestTabPosition, updateTabPosition, updateTabGroup } from '../../services/supabaseService';
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
 import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
@@ -273,18 +273,41 @@ function Homepage() {
     }
   }
 
+  const changeTabGroupName = (id: number, name: string) => {
+    updateTabGroup(id, {
+        name: name
+    })
+}
+  const updateDefaultTabGroup = async (id: number): Promise<number> => {
+    try {
+      await updateTabGroup(userDefaultTabGroup.current, {
+        is_default: false
+      });
+      const defaultTabGroup = await updateTabGroup(id, {
+        is_default: true
+      })
+      if (defaultTabGroup) {
+        userDefaultTabGroup.current = defaultTabGroup.id
+      } else {
+        throw new Error("Error setting default tab group");
+      }
+
+    } catch (error) {
+      console.log(error)
+      // throw new Error("Error setting default tab group");
+    }
+    return userDefaultTabGroup.current
+}
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3,
+        distance: 4,
       }
     }),
     useSensor(MouseSensor),
     useSensor(TouchSensor),
-    // useSensor(KeyboardSensor, {
-    //   coordinateGetter: sortableKeyboardCoordinates
-    // })
   )
 
   function onDragStart(event: DragStartEvent) {
@@ -477,6 +500,8 @@ function Homepage() {
                 tabGroup={tabGroup}
                 userTabs={userTabs.filter((tab) => tab.tab_group_id === tabGroup.id)}
                 handleDelete={handleDelete}
+                changeTabGroupName={changeTabGroupName}
+                updateDefaultTabGroup={updateDefaultTabGroup}
                 userTabsIds={userTabsIds}
               />
             ))
@@ -491,6 +516,8 @@ function Homepage() {
                 tabGroup={activeTabGroup}
                 userTabs={userTabs.filter((tab) => tab.tab_group_id === activeTabGroup.id)}
                 handleDelete={handleDelete}
+                changeTabGroupName={changeTabGroupName}
+                updateDefaultTabGroup={updateDefaultTabGroup}
                 userTabsIds={userTabsIds} // might need to double check this
               />
             )
