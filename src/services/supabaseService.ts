@@ -9,6 +9,7 @@ export type TabInsert = Database["public"]["Tables"]["tabs"]["Insert"];
 export type TabUpdate = Database["public"]["Tables"]["tabs"]["Update"];
 export type TabGroupRow = Database["public"]["Tables"]["tab_group"]["Row"];
 export type TabGroupInsert = Database["public"]["Tables"]["tab_group"]["Insert"];
+export type TabGroupUpdate = Database["public"]["Tables"]["tab_group"]["Update"];
 export type TabGroupDefaultInsert = Omit<TabGroupRow, 'id'>;
 export type TabRowLatestPosition = Pick<TabRow, 'position'>
 
@@ -46,6 +47,30 @@ export const insertTabGroup = async (tabGroup: TabGroupInsert): Promise<TabGroup
         // return
     }
     console.log("inserting data:", data);
+    return data;
+};
+
+export const updateTabGroup = async (id: number, tabGroup: TabGroupUpdate): Promise<TabGroupRow> => {
+    const { data, error } = await supabase
+    .from("tab_group")
+    .update(tabGroup)
+    .eq("id", id)
+    .select()
+    .single();
+
+    if (error) {
+        console.error(
+            "Error inserting tab group:",
+            error.message,
+            error.details,
+            error.hint,
+            error.name,
+        );
+        console.error("error data: ", data);
+        throw new Error("Tab group couldn't be updated")
+        // return
+    }
+    console.log("updating data:", data);
     return data;
 };
 
@@ -127,19 +152,7 @@ export const updateTabPosition = async (tab: UpdateTab, id: number ): Promise<Ta
     console.log("inserting data:", data);
     return data;
 };
-
-// Update: {
-//     description?: string | null;
-//     favicon_url?: string | null;
-//     id?: number;
-//     inserted_at?: string;
-//     parsed_url?: string | null;
-//     position?: number;
-//     tab_group_id?: number | null;
-//     updated_at?: string;
-//     url?: string;
-//     user_id?: string;
-// }
+// These should probably be one function - refactor
 
 export const deleteTabById = async (id: number) => {
     const { error } = await supabase.from("tabs").delete().eq("id", id)
