@@ -10,6 +10,7 @@ import Logout from '@mui/icons-material/Logout';
 import { cyan } from '@mui/material/colors';
 import { Fragment, useState } from 'react';
 import { useAuthContext } from '../context/AuthProvider';
+import { signOut } from '../utils/auth';
 
 export default function AccountMenu() {
   const { session, setSession } = useAuthContext();
@@ -29,6 +30,8 @@ export default function AccountMenu() {
   const handleLogout = () => {
     setSession(null)
     setAnchorEl(null);
+    signOut();
+    
   };
 
 
