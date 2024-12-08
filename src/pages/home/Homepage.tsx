@@ -4,14 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAllTabGroups, insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup, deleteTabById, getAllTabsSortedByPos, getLatestTabPosition, updateTabPosition } from '../../services/supabaseService';
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
-import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, KeyboardSensor, PointerSensor, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
+import { arrayMove, SortableContext } from '@dnd-kit/sortable';
 // import { MouseSensor, TouchSensor } from '../../utils/dndCustomSensors';
 import { createPortal } from 'react-dom';
 import SavedTab from '../../components/SavedTab';
 import { NewTab } from '../../types';
-import { Box, Container } from '@mui/material';
+import { Box, Button, Container } from '@mui/material';
 import AccountMenu from '../../components/AccountMenu';
+import AddIcon from '@mui/icons-material/Add';
 
 function Homepage() {
   const userDefaultTabGroup = useRef<number>(0)
@@ -189,6 +190,24 @@ function Homepage() {
     }
   };
 
+  const handleNewTabGroup = async () => {
+    console.log(userTabGroups.length)
+    const newTabGroupNumber = (userTabGroups.length + 1)
+    try {
+      const newTabGroup: TabGroupRow = await insertTabGroup({
+        is_default: false,
+        name: `New Group ${newTabGroupNumber}`,
+        user_id: `${session?.user.id}`
+      });
+      if (newTabGroup) {
+        setUserTabGroups(prevUserTabGroups => [...prevUserTabGroups, newTabGroup])
+      }
+    } catch (error) {
+      console.log(error)
+    }
+    
+  }
+
   const modifyTabData = async (tabData: chrome.tabs.Tab, defaultTabGroup: number, latestTabPos: number) => {
     console.log('modify tab, current default tab group: ', userDefaultTabGroup.current)
     // I should be using a class here 
@@ -263,9 +282,9 @@ function Homepage() {
     }),
     useSensor(MouseSensor),
     useSensor(TouchSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates
-    })
+    // useSensor(KeyboardSensor, {
+    //   coordinateGetter: sortableKeyboardCoordinates
+    // })
   )
 
   function onDragStart(event: DragStartEvent) {
@@ -430,18 +449,19 @@ function Homepage() {
   return (
     <>
     
-    <AccountMenu />
+    
     <Container >
+    <AccountMenu />
     <Box sx={{ maxWidth: '90%'}}>
-    <h1>Up Next</h1>
+    <h1>Tab Pocket</h1>
       <div className="card">
         <button onClick={async () => handleNewTab(await getCurrentTab())}>
-          Add to up next
+          Add to Pocket
         </button>
       </div>
       </Box>
     
-    <Box>
+    <Box sx={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
       <DndContext
         sensors={sensors}
         onDragStart={onDragStart}
@@ -449,7 +469,7 @@ function Homepage() {
         onDragOver={onDragOver}
         collisionDetection={closestCorners}>
           
-        <Box sx={{ flexGrow: 1, maxWidth: '90%', justifyContent: 'center'}}>
+        <Box sx={{display: 'flex', flexDirection: 'column', flexGrow: 1, maxWidth: '90%', justifyContent: 'center', gap: '20px'}}>
           <SortableContext items={userTabGroupsId}>
             {userTabGroups.map((tabGroup: TabGroupRow) => (
               <TabGroup
@@ -488,7 +508,14 @@ function Homepage() {
         )}
         
       </DndContext>
+      <Box sx={{ flexGrow: 1, maxWidth: '90%', justifyContent: 'center'}}>
+        <Button
+        onClick={() => handleNewTabGroup()}
+        ><AddIcon/>'Add New Group'</Button>
       </Box>
+      </Box>
+      
+      
       </Container>
     </>
   )
