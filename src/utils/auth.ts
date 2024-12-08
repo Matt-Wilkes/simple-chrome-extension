@@ -2,10 +2,6 @@
 import { supabase } from '../services/supabaseClient';
 import { getManifest, launchWebAuthFlow } from './chromeApi';
 
-// interface ManifestOauth2 {
-//   client_id: string;
-//   scopes: string[];
-// }
 
 export const authenticateWithGoogle = async (setSession: (session: any) => void) => {
     if (import.meta.env.MODE === 'development') {
@@ -73,4 +69,11 @@ export const authenticateWithGoogle = async (setSession: (session: any) => void)
       }
     }
   };
+  
+  export async function signOut() {
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    if (error) {
+        console.log(`Error: ${error.message}`)
+    }
+  }
   
