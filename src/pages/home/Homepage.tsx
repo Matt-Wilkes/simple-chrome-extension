@@ -1,10 +1,10 @@
 import '../../App.css'
 import { isEqual } from 'lodash'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getAllTabGroups, insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup, deleteTabById, getAllTabsSortedByPos, getLatestTabPosition, updateTabPosition, updateTabGroup } from '../../services/supabaseService';
+import { insertTab, TabRow, TabGroupRow, getDefaultTabGroup, insertTabGroup, deleteTabById, getAllTabsSortedByPos, getLatestTabPosition, updateTabPosition, updateTabGroup, getAllTabGroupsSortedByPos } from '../../services/supabaseService';
 import { useAuthContext } from '../../context/AuthProvider';
 import { TabGroup } from '../../components/TabGroup';
-import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
+import { closestCorners, DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, MouseSensor, TouchSensor, MeasuringStrategy } from '@dnd-kit/core';
 import { arrayMove, SortableContext } from '@dnd-kit/sortable';
 // import { MouseSensor, TouchSensor } from '../../utils/dndCustomSensors';
 import { createPortal } from 'react-dom';
@@ -14,13 +14,16 @@ import { Box, Button, Container } from '@mui/material';
 import AccountMenu from '../../components/AccountMenu';
 import AddIcon from '@mui/icons-material/Add';
 
+
 function Homepage() {
   const userDefaultTabGroup = useRef<number>(0)
   const latestTabPos = useRef<number>(9999)
+  const latestTabGroupPos = useRef<number>(9999)
   const { session } = useAuthContext();
 
   const [userTabs, setUserTabs] = useState<TabRow[]>([])
   const prevUserTabsRef = useRef<TabRow[]>([]);
+  const prevUserTabGroupsRef = useRef<TabGroupRow[]>([]);
 
   const [activeTab, setActiveTab] = useState<TabRow | null>(null)
   const [userTabGroups, setUserTabGroups] = useState<TabGroupRow[]>([])
@@ -85,9 +88,10 @@ function Homepage() {
   }
 
   const fetchTabGroupsFromDb = async () => {
-    const data = await getAllTabGroups();
+    const data = await getAllTabGroupsSortedByPos();
     if (data) {
       console.log("Fetched Tab Groups:", data);
+      latestTabGroupPos.current = (data.length);
       setUserTabGroups([...data]);
     }
   }
@@ -99,6 +103,7 @@ function Homepage() {
       latestTabPos.current = (data.position + 1);
     }
   }
+
 
   const checkAndPostLocalTabs = async () => {
     try {
@@ -197,7 +202,8 @@ function Homepage() {
       const newTabGroup: TabGroupRow = await insertTabGroup({
         is_default: false,
         name: `New Group ${newTabGroupNumber}`,
-        user_id: `${session?.user.id}`
+        user_id: `${session?.user.id}`,
+        position: latestTabGroupPos.current
       });
       if (newTabGroup) {
         setUserTabGroups(prevUserTabGroups => [...prevUserTabGroups, newTabGroup])
@@ -259,7 +265,8 @@ function Homepage() {
       const newDefaultTabGroup: TabGroupRow = await insertTabGroup({
         is_default: true,
         name: 'Default',
-        user_id: `${session?.user.id}`
+        user_id: `${session?.user.id}`,
+        position: latestTabGroupPos.current
       })
       if (newDefaultTabGroup) {
         setUserTabGroups(prevUserTabGroups => [...prevUserTabGroups, newDefaultTabGroup])
@@ -311,16 +318,14 @@ function Homepage() {
   )
 
   function onDragStart(event: DragStartEvent) {
-    console.log("DRAG START: ", event)
+    // console.log("DRAG START: ", event)
     if (event.active.data.current?.type === "tab") {
-      console.log("Tab sortable index: ", event.active.data.current?.sortable.index)
       setActiveTab(event.active.data.current.tab)
-      currentTabGroupId.current = event.active.data.current?.tab.tab_group_id
-      prevUserTabsRef.current = userTabs;
-      console.log('DRAG START prevUserTabsRef: ', prevUserTabsRef.current)
+      currentTabGroupId.current = event.active.data.current?.tabGroup
+      prevUserTabsRef.current = JSON.parse(JSON.stringify(userTabs));
     }
     if (event.active.data.current?.type === "tabGroup") {
-      console.log("Tab sortable index: ", event.active.data.current?.sortable.index)
+      prevUserTabGroupsRef.current = userTabGroups
       setActiveTabGroup(event.active.data.current.tabGroup)
     }
   }
@@ -334,10 +339,8 @@ function Homepage() {
 
     if (!over) return;
 
-    const activeId = active.id;
-    const overId = over.id;
-
-
+    console.log('DRAG END: prevUserTabsRef.current ', prevUserTabsRef.current)
+    console.log('DRAG END: userTabs ', userTabs)
 
     try {
       const prevUserTabs = prevUserTabsRef.current;
@@ -350,30 +353,34 @@ function Homepage() {
       );
 
       console.log('DRAG END Updated tabs', updatedTabs)
-      // set prevUserTabsRef.current to current user tabs
       updatedTabs.forEach((tab) => updateTabPosition({
         position: tab.position,
         tab_group_id: tab.tab_group_id
       }, tab.id))
-
     } catch (error) {
       console.log(error)
     }
 
-    prevUserTabsRef.current = userTabs;
+   
+    try {
+      const prevUserTabGroups = prevUserTabGroupsRef.current;
+      // filter through user tabs
+      const updatedTabGroups = userTabGroups.filter((tabGroup) =>
+        prevUserTabGroups.some((prevTabGroup) => prevTabGroup.id === tabGroup.id && !isEqual(prevTabGroup, tabGroup)
+        )
+      );
 
-    // if they are equal, do nothing
-    if (active.id === over.id) return;
+      console.log('DRAG END Updated tab Groups', updatedTabGroups)
+      // set prevUserTabsRef.current to current user tabs
+      updatedTabGroups.forEach((tabGroup) => updateTabGroup(tabGroup.id, {
+        position: tabGroup.position
+      }))
 
-
-    setUserTabGroups((userTabGroups) => {
-      // get the original position of the element BEFORE dragging
-      const activeTabGroupIndex = userTabGroups.findIndex((userTabGroup) => userTabGroup.id === activeId);
-      // get the new position of where it should be after the array has updated
-      const overTabGroupIndex = userTabGroups.findIndex((userTabGroup) => userTabGroup.id === overId);
-      return arrayMove(userTabGroups, activeTabGroupIndex, overTabGroupIndex)
+    } catch (error) {
+      console.log(error)
     }
-    )
+     // if they are equal, do nothing
+     if (active.id === over.id) return;
 
   }
 
@@ -389,8 +396,30 @@ function Homepage() {
     // if they are equal, do nothing
     if (activeId === overId) return;
 
+    const isActiveTabGroup = active.data.current?.type === "tabGroup";
+    const isOverTabGroup = over.data.current?.type === "tabGroup";
     const isActiveTab = active.data.current?.type === "tab";
     const isOverTab = over.data.current?.type === "tab";
+
+    if (isActiveTabGroup && isOverTabGroup) {
+      setUserTabGroups((userTabGroups) => {
+        // get the original position of the element BEFORE dragging
+        const activeTabGroupIndex = userTabGroups.findIndex((userTabGroup) => userTabGroup.id === activeId);
+        // get the new position of where it should be after the array has updated
+        const overTabGroupIndex = userTabGroups.findIndex((userTabGroup) => userTabGroup.id === overId);
+
+        const updatedUserTabGroups = arrayMove(userTabGroups, activeTabGroupIndex, overTabGroupIndex)
+  
+        const newTabGroupIndexes = updatedUserTabGroups.map((tabGroup, index) => ({
+          ...tabGroup,
+          position: index
+        }));
+  
+        return newTabGroupIndexes;
+      }
+    )
+    }
+
 
     if (!isActiveTab) return;
 
@@ -403,13 +432,8 @@ function Homepage() {
         const sortableOverIndex = over.data.current?.sortable.index
         const overTabGroupId = over.data.current?.tabGroup
 
-        // set the 'position' of the tab
         userTabs[activeIndex].position = sortableOverIndex;
-        // set the tab_group_id of the tab
         userTabs[activeIndex].tab_group_id = overTabGroupId;
-        console.log('currentTabGroup id: ', currentTabGroupId.current)
-        console.log('sortable tabs: ', userTabsIds)
-        // update the 'position' of any tabs that have changed 
 
         const updatedUserTabs = arrayMove(userTabs, activeIndex, overIndex)
 
@@ -425,54 +449,73 @@ function Homepage() {
           position: index
         }))
 
-        console.log('changed tabs in group: ', newGroupIndexes);
-        console.log('changed tabs in prev group: ', prevGroupIndexes);
-
         const finalUpdatedUserTabs = updatedUserTabs.map((tab) => {
-          const updatedTab =
+          if (currentTabGroupId.current != overTabGroupId) {
+            const updatedTab =
             newGroupIndexes.find((item) => item.id === tab.id) ||
             prevGroupIndexes.find((item) => item.id === tab.id);
 
           return updatedTab || tab;
-        });
-        console.log('final user tabs', finalUpdatedUserTabs)
+          } else {
+            const updatedTab = 
+            newGroupIndexes.find((item) => item.id === tab.id)
 
+            return updatedTab || tab;
+          }
+          
+        });
         return finalUpdatedUserTabs
       });
-
-      console.log('user Tab: ', event)
     }
 
-    // im dropping a task over an EMPTY column?
-    const isOverAUserTabGroup = over.data.current?.type === "tabGroup";
+    // If I have an active tab, and I am hovering over an empty tab group
+    if (isActiveTab && isOverTabGroup) {
+      const activeIndex = userTabs.findIndex((t) => t.id === activeId);
+      const overTabGroupId = over.data.current?.tabGroup.id
 
-    // If I have an active tab, and I am hovering over a tab group
-    if (isActiveTab && isOverAUserTabGroup) {
-      // this doesn't seem to happen although the tabs are moving into the right groups
-      console.log('over user tab group', over.data.current?.type);
-      // 
       setUserTabs((userTabs) => {
-        // find the index of the active tab in the userTabs array
-        const activeIndex = userTabs.findIndex((t) => t.id === activeId);
-        console.log('userTabs activeindex: ', activeIndex)
+        userTabs[activeIndex].position = 0
+        userTabs[activeIndex].tab_group_id = overTabGroupId
 
-        // Convert overId to number
-        const overIdAsNumber = typeof overId === 'string' ? parseInt(overId, 10) : overId;
+        const updatedUserTabs = arrayMove(userTabs, activeIndex, 0)
+         // create array of tabs in the NEW group, update the position property based on their position in the array
+         const newGroupIndexes = userTabs.filter(tab => tab.tab_group_id === overTabGroupId).map((item, index) => ({
+          ...item,
+          position: index
+        }));
 
-        // if the task is being hovered over another column, set the tasks activeIndex to the new columnId
-        userTabs[activeIndex].tab_group_id = overIdAsNumber
-        console.log('tabs[activeindex].tab_group_id', userTabs[activeIndex].tab_group_id)
+        // create array of tabs in the PREVIOUS group, update the position property based on their position in the array
+        const prevGroupIndexes = updatedUserTabs.filter(tab => tab.tab_group_id === currentTabGroupId.current).map((item, index) => ({
+          ...item,
+          position: index
+        }))
 
-        // triggering a re-render of the array
-        return arrayMove(userTabs, activeIndex, activeIndex)
+        const finalUpdatedUserTabs = updatedUserTabs.map((tab) => {
+          if (currentTabGroupId.current != overTabGroupId && prevGroupIndexes.length > 0) {
+            const updatedTab =
+            newGroupIndexes.find((item) => item.id === tab.id) ||
+            prevGroupIndexes.find((item) => item.id === tab.id);
+
+          return updatedTab || tab;
+          } else {
+            const updatedTab = 
+            newGroupIndexes.find((item) => item.id === tab.id)
+
+            return updatedTab || tab;
+          }
+          
+        });
+
+        return finalUpdatedUserTabs
       })
-    }
+
+  }
+
+
   }
 
   return (
     <>
-    
-    
     <Container >
     <AccountMenu />
     <Box sx={{ maxWidth: '90%'}}>
@@ -484,13 +527,20 @@ function Homepage() {
       </div>
       </Box>
     
+    {/* wraps around the tab groups and 'new tab group' button */}
     <Box sx={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
       <DndContext
         sensors={sensors}
         onDragStart={onDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={onDragOver}
-        collisionDetection={closestCorners}>
+        collisionDetection={closestCorners}
+        measuring={{
+          droppable: {
+            strategy: MeasuringStrategy.Always
+          }
+        }}
+        >
           
         <Box sx={{display: 'flex', flexDirection: 'column', flexGrow: 1, maxWidth: '90%', justifyContent: 'center', gap: '20px'}}>
           <SortableContext items={userTabGroupsId}>
@@ -523,12 +573,15 @@ function Homepage() {
             )
             }
             {activeTab && (
+              // This will be the dragging element!!
+              // I want this to be the same size/width - but just an empty box
               <SavedTab
                 key={activeTab.id}
                 tab={activeTab}
                 handleDelete={handleDelete}
                 tabGroupId={activeTab.tab_group_id} // might need to double check this
-              />)
+              />
+            )
             }
           </DragOverlay>,
           document.body

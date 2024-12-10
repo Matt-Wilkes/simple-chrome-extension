@@ -5,9 +5,9 @@ import { TabRow } from "../services/supabaseService";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 // import { useMemo } from "react";
 import { CSS } from "@dnd-kit/utilities"
-import { purple } from "@mui/material/colors";
 import { useState } from "react";
 import EditIcon from '@mui/icons-material/Edit';
+import theme from "./createTheme";
 
 export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete, changeTabGroupName, updateDefaultTabGroup }: TabGroupProps) {
 
@@ -22,57 +22,81 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete, change
     const [isDefault, setIsDefault] = useState(is_default)
 
 
-    const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable(
+    const { setNodeRef, attributes, listeners, transform, transition } = useSortable(
         {
             id: id,
             data: {
                 type: "tabGroup",
                 tabGroup
-            }
+            },
+            disabled: editMode,
         })
+
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
     };
 
-    // const changeTabGroupName = (id: number, name: string) => {
-    //     updateTabGroup(id, {
-    //         name: name
-    //     })
+
+    // if (isDragging) { //there is an issue here
+    //     // placeholder element in the original position of the dragged item
+    //     //BUG: this is taking on the height of the container being hovered over
+        
+    //     return (
+    //         <>
+    //         <Box
+    //         ref={setNodeRef} //so dnd can handle the div
+    //         style={style} 
+    //         sx={{ 
+    //             display: 'flex', 
+    //             flexDirection: 'column', 
+    //             minHeight: '100px',
+    //             maxHeight: '300px',
+    //             maxWidth: '360px', 
+    //             borderRadius: '15px', 
+    //             border: "2px solid",
+    //             gap: '8px' ,
+    //             borderColor: theme.palette.primary.light,
+    //         }} 
+    //         />
+    //         <Typography>{id}</Typography>
+    //         <Typography>{isDragging}</Typography>
+    //         </>
+            
+    //     )
+        
     // }
 
-    if (isDragging) {
-        return (
-            <Box component="div"
-                ref={setNodeRef} //so dnd can handle the div
-                style={style}
-                sx={{ bgcolor: purple[200], }}
-            >
-
-            </Box>
-        )
-    }
-
     return (
+        // default rendering logic 
         <Box
+            {...attributes}
+            {...listeners}
             ref={setNodeRef} //so dnd can handle the div
-            style={style}
-            sx={{ display: 'flex', flexDirection: 'column', maxWidth: '500px', backgroundColor: '#ffffff', borderRadius: '15px', gap: '8px' }} 
+            style={style} 
+            sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                minHeight: '100px',
+                maxWidth: '360px', 
+                borderRadius: '15px', 
+                // border: "2px solid",
+                gap: '8px' ,
+                // borderColor: theme.palette.primary.light,
+            }} 
         >
 
-            <Box
+            {/* <Box
                 {...attributes}
                 {...listeners}
                 sx={{ gap: '10px' }}
-            >
-
-                <Box sx={{ alignItems: 'center', minWidth: '45%', maxWidth: '100%', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '12px', backgroundColor: 'primary.light', borderRadius: '15px' }}
-                // onBlur={() => {
-                //                     setEditMode(false);
-                //                 }}
+            > */}
+                {/* column header row */}
+                <Box 
+                sx={{ alignItems: 'center', maxWidth: '320px', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', padding: '12px', backgroundColor: theme.palette.primary.light, borderRadius: '15px' }}
+                
                 >
-                    
                     {!editMode && (
                         <>
                             <Typography
@@ -85,7 +109,7 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete, change
                                 sx={{
                                     cursor: 'pointer',
                                     '&:hover': {
-                                        color: 'primary.dark',
+                                        color: theme.palette.primary.dark,
                                     },
                                     '&:active': {
                                         backgroundColor: 'inherit',
@@ -97,7 +121,8 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete, change
                     )}
                     {editMode && (
                         <>
-                            <TextField
+                        <Box sx={{ maxWidth: '50%'}}>
+                        <TextField
                                 variant="standard"
                                 margin="none"
                                 label="Group name"
@@ -115,9 +140,10 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete, change
                                         setEditMode(false)
                                     }
                                 }}
-                                sx={{ maxWidth: '200px', border: 'none' }}
+                                sx={{ maxWidth: '100%', border: 'none' }}
                             />
-                            <Box>
+                        </Box>
+                            <Box sx={{ maxWidth: '50%' }}>
                             {isDefault && (
 
                                 <FormControlLabel disabled control={
@@ -155,16 +181,18 @@ export function TabGroup({ tabGroup, userTabs, userTabsIds, handleDelete, change
                         </>
                     )}
                 </Box>
-            </Box>
+            {/* </Box> */}
+            
             <SortableContext
                 items={userTabsIds}
-                strategy={verticalListSortingStrategy}>
+                strategy={verticalListSortingStrategy}
+                >
                 {userTabs.map((tab: TabRow) => (
                     <SavedTab key={tab.id} tab={tab} tabGroupId={id} handleDelete={handleDelete} />
                 ))
                 }
             </SortableContext>
-
+             
         </Box>
 
     )
