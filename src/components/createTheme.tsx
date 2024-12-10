@@ -15,6 +15,10 @@ const theme = createTheme({
     //   contrastText: '#000',
     },
   },
+  typography: {
+    fontFamily: "Inter, system-ui, Avenir, Helvetica, Arial, sans-serif",
+    
+  },
 });
 
 export default theme

@@ -39,18 +39,21 @@ export type Database = {
           id: number
           is_default: boolean
           name: string
+          position: number
           user_id: string
         }
         Insert: {
           id?: number
           is_default?: boolean
           name: string
+          position: number
           user_id: string
         }
         Update: {
           id?: number
           is_default?: boolean
           name?: string
+          position?: number
           user_id?: string
         }
         Relationships: []

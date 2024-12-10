@@ -13,11 +13,24 @@ export type TabGroupUpdate = Database["public"]["Tables"]["tab_group"]["Update"]
 export type TabGroupDefaultInsert = Omit<TabGroupRow, 'id'>;
 export type TabRowLatestPosition = Pick<TabRow, 'position'>
 
+
 export const getAllTabGroups = async (): Promise<TabGroupRow[]> => {
     const { data, error } = await supabase.from("tab_group").select("*");
     if (error) {
         console.error("Error fetching Tab Groups:", error);
         return [];
+    }
+    return data;
+};
+
+export const getAllTabGroupsSortedByPos = async (): Promise<TabGroupRow[] | null> => {
+    const { data, error } = await supabase
+    .from("tab_group")
+    .select("*")
+    .order("position", {ascending: true});
+    if (error) {
+        console.error("Error fetching Tab Groups:", error);
+        return null;
     }
     return data;
 };

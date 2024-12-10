@@ -19,7 +19,7 @@
     "@mui/material": "^6.1.5",
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
-    "@supabase/supabase-js": "^2.46.1",
+    "@supabase/supabase-js": "^2.47.2",
     "@types/lodash": "^4.17.13",
     "@types/node": "^22.9.0",
     "dotenv": "^16.4.5",
